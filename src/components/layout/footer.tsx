@@ -61,7 +61,7 @@ export function Footer() {
             <h3 className="mb-4 text-sm tracking-[0.2em] text-gold uppercase">Follow</h3>
             {SITE.instagram ? (
               <a
-                href={`https://instagram.com/${SITE.instagram}`}
+                href={SITE.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-gold"

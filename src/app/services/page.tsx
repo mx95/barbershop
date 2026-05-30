@@ -5,8 +5,9 @@ import { PageHeader } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PriceDisplay } from "@/components/ui/price-display";
 import { SERVICES } from "@/lib/constants";
-import { formatPrice, formatDuration } from "@/lib/booking-utils";
+import { formatDuration } from "@/lib/booking-utils";
 
 export const metadata: Metadata = {
   title: "Services",
@@ -46,7 +47,7 @@ export default function ServicesPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-heading text-3xl text-gold">{formatPrice(service.price)}</p>
+                      <PriceDisplay price={service.price} className="text-3xl" />
                       <Button size="sm" variant="outline" asChild className="mt-3 border-gold/30">
                         <Link href={`/booking?service=${service.id}`}>Book</Link>
                       </Button>

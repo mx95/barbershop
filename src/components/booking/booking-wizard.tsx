@@ -1,77 +1,96 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addMinutes } from "date-fns";
-import { Calendar as CalendarIcon, Clock, Check, ChevronLeft, ChevronRight, Scissors } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Check, ChevronLeft, ChevronRight, Scissors, User } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SERVICES, BARBERS } from "@/lib/constants";
-import { generateTimeSlots, formatPrice, formatDuration, isClosedDay } from "@/lib/booking-utils";
-import { createClient } from "@/lib/supabase/client";
+import { PriceDisplay } from "@/components/ui/price-display";
+import { AddToCalendar } from "@/components/booking/add-to-calendar";
+import { SERVICES, BARBERS, SITE } from "@/lib/constants";
+import { generateTimeSlots, formatPrice, formatDuration, isBarberAvailableDay, type CalendarEvent } from "@/lib/booking-utils";
+import { loadSavedCustomer, saveCustomer, saveBookingId } from "@/lib/customer-storage";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["Service", "Barber", "Date & Time", "Confirm"];
+const STEPS = ["Service", "Barber", "Date & Time", "Your Details", "Confirm"];
+
+interface CompletedBooking {
+  calendarEvent: CalendarEvent;
+}
+
+function selectionCardClass(selected: boolean) {
+  return cn(
+    "glass-card cursor-pointer transition-all hover:border-gold/50",
+    selected &&
+      "border-gold bg-gold/15 ring-2 ring-gold/60 shadow-[inset_0_0_0_1px_rgba(212,175,55,0.35)]"
+  );
+}
 
 function BookingWizardInner() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [step, setStep] = useState(0);
   const [serviceId, setServiceId] = useState(searchParams.get("service") || "");
   const [barberId, setBarberId] = useState<(typeof BARBERS)[number]["id"]>(BARBERS[0].id);
   const [date, setDate] = useState<Date | undefined>();
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [completedBooking, setCompletedBooking] = useState<CompletedBooking | null>(null);
 
   const service = SERVICES.find((s) => s.id === serviceId);
   const barber = BARBERS.find((b) => b.id === barberId);
   const timeSlots = date && service ? generateTimeSlots(date, service.duration, bookedSlots) : [];
 
   useEffect(() => {
-    if (!date) return;
+    const saved = loadSavedCustomer();
+    if (saved?.name) setCustomerName(saved.name);
+    if (saved?.phone) setCustomerPhone(saved.phone);
+    if (saved?.email) setCustomerEmail(saved.email ?? "");
+  }, []);
+
+  useEffect(() => {
+    if (!date || !barber) return;
+
     async function fetchSlots() {
-      const supabase = createClient();
-      const dayStart = format(date!, "yyyy-MM-dd") + "T00:00:00";
-      const dayEnd = format(date!, "yyyy-MM-dd") + "T23:59:59";
-
       try {
-        const { data } = await supabase
-          .from("appointments")
-          .select("starts_at")
-          .gte("starts_at", dayStart)
-          .lte("starts_at", dayEnd)
-          .neq("status", "cancelled");
-
-        if (data) {
-          setBookedSlots(data.map((a) => format(new Date(a.starts_at), "HH:mm")));
-        }
+        const res = await fetch(
+          `/api/appointments?date=${format(date!, "yyyy-MM-dd")}&barberId=${barber!.id}`
+        );
+        const data = await res.json();
+        if (data.bookedSlots) setBookedSlots(data.bookedSlots);
       } catch {
-        // Supabase not configured yet
+        // ignore fetch errors
       }
     }
     fetchSlots();
-  }, [date]);
+  }, [date, barber]);
+
+  useEffect(() => {
+    setTime("");
+    setDate((current) => (current && !isBarberAvailableDay(current, barberId) ? undefined : current));
+  }, [barberId]);
 
   async function handleConfirm() {
     if (!service || !date || !time) return;
 
     setLoading(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-      toast.error("Please sign in to book an appointment");
-      router.push(`/auth/login?redirect=/booking`);
+    if (!customerName.trim() || !customerPhone.trim()) {
+      toast.error("Please enter your name and phone number");
       setLoading(false);
       return;
     }
@@ -91,14 +110,40 @@ function BookingWizardInner() {
           startsAt: startsAt.toISOString(),
           endsAt: endsAt.toISOString(),
           notes,
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          customerEmail: customerEmail.trim() || undefined,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Booking failed");
 
+      saveCustomer({
+        name: customerName.trim(),
+        phone: customerPhone.trim(),
+        email: customerEmail.trim() || undefined,
+      });
+      saveBookingId(data.appointment.id);
+
+      setCompletedBooking({
+        calendarEvent: {
+          title: `${service.name} — ${SITE.name}`,
+          description: [
+            `Barber: ${barber!.name}`,
+            `Customer: ${customerName.trim()}`,
+            `Phone: ${customerPhone.trim()}`,
+            notes ? `Notes: ${notes}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          location: SITE.address,
+          startsAt,
+          endsAt,
+        },
+      });
+
       toast.success("Appointment booked successfully!");
-      router.push(`/account?booking=${data.appointment.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -110,7 +155,52 @@ function BookingWizardInner() {
     if (step === 0) return !!serviceId;
     if (step === 1) return !!barberId;
     if (step === 2) return !!date && !!time;
+    if (step === 3) return !!customerName.trim() && !!customerPhone.trim();
     return true;
+  }
+
+  if (completedBooking && service && barber && date && time) {
+    return (
+      <div className="section-padding">
+        <div className="mx-auto max-w-2xl">
+          <Card className="glass-card border-gold/30">
+            <CardContent className="space-y-6 p-8 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gold/20">
+                <Check className="h-8 w-8 text-gold" />
+              </div>
+              <div>
+                <h2 className="font-heading text-3xl">You&apos;re Booked!</h2>
+                <p className="mt-2 text-muted-foreground">
+                  {service.name} with {barber.name} on {format(date, "EEEE, MMMM d")} at {time}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {customerName} · {customerPhone}
+                </p>
+              </div>
+              <AddToCalendar event={completedBooking.calendarEvent} />
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button variant="outline" className="flex-1 border-gold/30" asChild>
+                  <Link href="/">Back to Home</Link>
+                </Button>
+                <Button
+                  className="gold-gradient flex-1 border-0"
+                  onClick={() => {
+                    setCompletedBooking(null);
+                    setStep(0);
+                    setServiceId("");
+                    setDate(undefined);
+                    setTime("");
+                    setNotes("");
+                  }}
+                >
+                  Book Another
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -153,60 +243,77 @@ function BookingWizardInner() {
           >
             {step === 0 && (
               <div className="grid gap-4">
-                {SERVICES.map((s) => (
+                {SERVICES.map((s) => {
+                  const selected = serviceId === s.id;
+                  return (
                   <Card
                     key={s.id}
-                    className={cn(
-                      "glass-card cursor-pointer transition-all hover:border-gold/40",
-                      serviceId === s.id && "border-gold ring-1 ring-gold/30"
-                    )}
+                    className={selectionCardClass(selected)}
                     onClick={() => setServiceId(s.id)}
                   >
-                    <CardContent className="flex items-center justify-between p-5">
+                    <CardContent className="flex items-center justify-between gap-4 p-5">
                       <div className="flex items-center gap-4">
-                        <Scissors className="h-5 w-5 text-gold" />
+                        <div
+                          className={cn(
+                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border",
+                            selected ? "border-gold bg-gold/20 text-gold" : "border-gold/30 text-gold"
+                          )}
+                        >
+                          {selected ? <Check className="h-5 w-5" /> : <Scissors className="h-5 w-5" />}
+                        </div>
                         <div>
                           <h3 className="font-heading text-lg">{s.name}</h3>
                           <p className="text-sm text-muted-foreground">{formatDuration(s.duration)}</p>
                         </div>
                       </div>
-                      <span className="font-heading text-xl text-gold">{formatPrice(s.price)}</span>
+                      <PriceDisplay price={s.price} className="text-xl" />
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
 
             {step === 1 && (
-              <div className="grid gap-4">
-                {BARBERS.map((b) => (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {BARBERS.map((b) => {
+                  const selected = barberId === b.id;
+                  return (
                   <Card
                     key={b.id}
-                    className={cn(
-                      "glass-card cursor-pointer transition-all hover:border-gold/40",
-                      barberId === b.id && "border-gold ring-1 ring-gold/30"
-                    )}
+                    className={selectionCardClass(selected)}
                     onClick={() => setBarberId(b.id)}
                   >
-                    <CardContent className="flex items-center gap-4 p-5">
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-gold/40 bg-black/40">
-                        <Image
-                          src={b.image}
-                          alt={b.name}
-                          fill
-                          className="object-cover"
-                          style={{ objectPosition: b.imageFocus }}
-                          sizes="64px"
-                        />
+                    <CardContent className="flex flex-col items-center gap-4 p-5 text-center sm:items-start sm:text-left">
+                      <div className="flex w-full items-center justify-between">
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-gold/40 bg-black/40">
+                          <Image
+                            src={b.image}
+                            alt={b.name}
+                            fill
+                            className="object-cover"
+                            style={{ objectPosition: b.imageFocus }}
+                            sizes="64px"
+                          />
+                        </div>
+                        {selected && (
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold text-primary-foreground">
+                            <Check className="h-4 w-4" />
+                          </div>
+                        )}
                       </div>
                       <div>
                         <h3 className="font-heading text-lg">{b.name}</h3>
                         <p className="text-sm text-gold">{b.title}</p>
-                        <p className="text-sm text-muted-foreground">{b.bio}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{b.bio}</p>
+                        <p className="mt-2 text-xs tracking-wide text-white/70 uppercase">
+                          Available {b.scheduleLabel}
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -220,7 +327,10 @@ function BookingWizardInner() {
                     mode="single"
                     selected={date}
                     onSelect={setDate}
-                    disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0)) || isClosedDay(d)}
+                    weekStartsOn={1}
+                    disabled={(d) =>
+                      d < new Date(new Date().setHours(0, 0, 0, 0)) || !isBarberAvailableDay(d, barberId)
+                    }
                     className="glass-card rounded-xl border-gold/20 p-3"
                   />
                 </div>
@@ -253,12 +363,63 @@ function BookingWizardInner() {
               </div>
             )}
 
-            {step === 3 && service && barber && date && time && (
+            {step === 3 && (
+              <Card className="glass-card">
+                <CardContent className="space-y-5 p-8">
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-gold" />
+                    <h3 className="font-heading text-2xl">Your Details</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    We need your name and phone so we can confirm your appointment and reach you if needed.
+                  </p>
+                  <div>
+                    <Label htmlFor="customerName">Full Name *</Label>
+                    <Input
+                      id="customerName"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Your full name"
+                      required
+                      className="mt-1.5 border-gold/20 bg-white/5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customerPhone">Phone *</Label>
+                    <Input
+                      id="customerPhone"
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="+357 99 123456"
+                      required
+                      className="mt-1.5 border-gold/20 bg-white/5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customerEmail">Email (optional)</Label>
+                    <Input
+                      id="customerEmail"
+                      type="email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      placeholder="you@email.com"
+                      className="mt-1.5 border-gold/20 bg-white/5"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 4 && service && barber && date && time && (
               <Card className="glass-card">
                 <CardContent className="space-y-6 p-8">
                   <h3 className="font-heading text-2xl">Booking Summary</h3>
                   <div className="space-y-3">
                     {[
+                      ["Customer", customerName],
+                      ["Phone", customerPhone],
+                      ...(customerEmail ? [["Email", customerEmail] as const] : []),
                       ["Service", service.name],
                       ["Barber", barber.name],
                       ["Date", format(date, "EEEE, MMMM d, yyyy")],
@@ -268,7 +429,14 @@ function BookingWizardInner() {
                     ].map(([label, value]) => (
                       <div key={label} className="flex justify-between border-b border-gold/10 pb-2">
                         <span className="text-muted-foreground">{label}</span>
-                        <span className="font-medium">{value}</span>
+                        <span
+                          className={cn(
+                            "font-medium",
+                            label === "Price" && "font-price text-xl font-semibold text-gold tabular-nums"
+                          )}
+                        >
+                          {value}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -304,7 +472,7 @@ function BookingWizardInner() {
           >
             <ChevronLeft className="mr-1 h-4 w-4" /> Back
           </Button>
-          {step < 3 && (
+          {step < 4 && (
             <Button
               onClick={() => setStep((s) => s + 1)}
               disabled={!canProceed()}

@@ -6,8 +6,9 @@ import { Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PriceDisplay } from "@/components/ui/price-display";
 import { SERVICES } from "@/lib/constants";
-import { formatPrice, formatDuration } from "@/lib/booking-utils";
+import { formatDuration } from "@/lib/booking-utils";
 
 export function ServicesPreview() {
   const featured = SERVICES.filter((s) => s.popular).slice(0, 4);
@@ -39,9 +40,7 @@ export function ServicesPreview() {
                     <Badge variant="outline" className="border-gold/30 text-gold">
                       {service.category}
                     </Badge>
-                    <span className="font-heading text-2xl text-gold">
-                      {formatPrice(service.price)}
-                    </span>
+                    <PriceDisplay price={service.price} />
                   </div>
                   <h3 className="font-heading text-xl">{service.name}</h3>
                   <p className="mt-2 flex-1 text-sm text-muted-foreground">

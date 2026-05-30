@@ -35,7 +35,7 @@ export function InstagramFeed() {
           <p className="mb-3 text-sm tracking-[0.3em] text-gold uppercase">Social</p>
           <h2 className="font-heading text-4xl font-light sm:text-5xl">Follow the Craft</h2>
           <a
-            href={`https://instagram.com/${SITE.instagram}`}
+            href={SITE.instagramUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-4 inline-flex items-center gap-2 text-sm text-gold hover:underline"

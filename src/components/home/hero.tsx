@@ -31,19 +31,10 @@ export function Hero() {
           <LogoMark size="hero" />
         </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-4 text-sm tracking-[0.4em] text-gold uppercase sm:text-base"
-        >
-          {SITE.locationLine}, Cyprus · {SITE.tagline}
-        </motion.p>
-
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.3 }}
           className="font-heading text-5xl font-light tracking-wide sm:text-6xl lg:text-8xl"
         >
           {SITE.name}

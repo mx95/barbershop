@@ -46,13 +46,16 @@ CREATE TABLE barbers (
 -- Appointments
 CREATE TABLE appointments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id UUID NOT NULL REFERENCES profiles(id),
+  customer_id UUID REFERENCES profiles(id),
   barber_id UUID NOT NULL REFERENCES barbers(id),
   service_id UUID NOT NULL REFERENCES services(id),
   starts_at TIMESTAMPTZ NOT NULL,
   ends_at TIMESTAMPTZ NOT NULL,
   status appointment_status DEFAULT 'confirmed',
   notes TEXT,
+  customer_name TEXT,
+  customer_phone TEXT,
+  customer_email TEXT,
   check_in_code TEXT UNIQUE NOT NULL,
   checked_in_at TIMESTAMPTZ,
   reminder_email_sent BOOLEAN DEFAULT FALSE,
@@ -104,7 +107,11 @@ CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO profiles (id, email, full_name)
-  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name');
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name')
+  );
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -159,6 +166,7 @@ INSERT INTO services (slug, name, description, duration, price, category) VALUES
   ('father-1-son', 'Father + 1 Son', 'Haircuts for dad and one son in a single booking.', 60, 25.00, 'Family'),
   ('father-2-sons', 'Father + 2 Sons', 'Haircuts for dad and two sons — great value for the family.', 90, 35.00, 'Family');
 
--- Seed default barber
+-- Seed barbers
 INSERT INTO barbers (name, title, bio, image_url) VALUES
-  ('The Temple Of Men Team', 'Barbers', 'Skilled barbers delivering classic cuts, hot towel shaves, and beard work in Xylophagou.', '/images/shop-wall.jpg');
+  ('Spyros', 'Owner', 'Classic cuts, fades, and hot towel shaves.', '/images/shop-wall.jpg'),
+  ('Lambros', 'Barber', 'Beard work and traditional barbering with precision.', '/images/shop-wall.jpg');

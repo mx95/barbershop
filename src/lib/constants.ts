@@ -4,12 +4,13 @@ export const SITE = {
   locationLine: "Xylophagou, Larnaca",
   description:
     "Classic cuts, hot towel shaves, and beard work at The Temple Of Men — a vintage barbershop on Mixalaki Vraximi in Xylophagou, Larnaca.",
-  phone: "+35796401605",
-  phoneDisplay: "+357 96 401605",
+  phone: "+35724044969",
+  phoneDisplay: "24 044969",
   email: "onlyclassicnoshit@hotmail.com",
   address: "Mixalaki Vraximi 37, Xylophagou, Larnaka 7520",
   mapQuery: "Mixalaki+Vraximi+37+Xylophagou+Larnaka+7520",
-  instagram: "thetempleofmen",
+  instagram: "thetempleofmen_barbershop",
+  instagramUrl: "https://www.instagram.com/thetempleofmen_barbershop/",
   established: 2024,
   bookingHours: { open: 9, close: 19 },
   setmoreUrl: "https://thetempleofmen.setmore.com",
@@ -33,7 +34,6 @@ export const OPENING_HOURS_SUMMARY =
 
 export const NAV_LINKS = [
   { href: "/", label: "Home" },
-  { href: "/services", label: "Services" },
   { href: "/gallery", label: "Gallery" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
@@ -152,12 +152,24 @@ export const SERVICES = [
 
 export const BARBERS = [
   {
-    id: "team",
-    name: "The Temple Of Men Team",
-    title: "Barbers",
-    bio: "Skilled barbers delivering classic cuts, hot towel shaves, and beard work in Xylophagou.",
+    id: "spyros",
+    name: "Spyros",
+    title: "Owner",
+    bio: "Classic cuts, fades, and hot towel shaves.",
+    scheduleLabel: "Mon–Wed, Fri & Sat",
+    closedDays: [] as const,
     image: "/images/shop-wall.jpg",
-    imageFocus: "50% 50%",
+    imageFocus: "50% 30%",
+  },
+  {
+    id: "lambros",
+    name: "Lambros",
+    title: "Barber",
+    bio: "Beard work and traditional barbering with precision.",
+    scheduleLabel: "Mon–Wed, Fri & Sat",
+    closedDays: [] as const,
+    image: "/images/shop-wall.jpg",
+    imageFocus: "50% 70%",
   },
 ] as const;
 

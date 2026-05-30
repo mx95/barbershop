@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import {
@@ -10,7 +9,6 @@ import {
   Clock,
   Users,
   XCircle,
-  QrCode,
   Bell,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,82 +17,60 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createClient } from "@/lib/supabase/client";
-import type { Appointment } from "@/lib/types";
+import type { StoredAppointment } from "@/lib/store/appointments";
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointments, setAppointments] = useState<StoredAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ today: 0, week: 0, completed: 0, pending: 0 });
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      try {
+        const res = await fetch("/api/appointments");
+        const data = await res.json();
+        const all = (data.appointments ?? []) as StoredAppointment[];
+        const today = format(new Date(), "yyyy-MM-dd");
+        const todayAppts = all.filter(
+          (a) => format(new Date(a.starts_at), "yyyy-MM-dd") === today
+        );
 
-      if (!user) {
-        router.push("/auth/login?redirect=/dashboard");
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (profile?.role !== "barber" && profile?.role !== "admin") {
-        router.push("/account");
-        return;
-      }
-
-      const today = format(new Date(), "yyyy-MM-dd");
-      const { data } = await supabase
-        .from("appointments")
-        .select("*, services(name, price, duration), profiles!appointments_customer_id_fkey(full_name, phone, email)")
-        .gte("starts_at", `${today}T00:00:00`)
-        .order("starts_at", { ascending: true });
-
-      if (data) {
-        setAppointments(data);
-        const now = new Date();
+        setAppointments(todayAppts);
         setStats({
-          today: data.length,
-          week: data.length,
-          completed: data.filter((a) => a.status === "completed").length,
-          pending: data.filter((a) => a.status === "confirmed" || a.status === "pending").length,
+          today: todayAppts.length,
+          week: all.length,
+          completed: todayAppts.filter((a) => a.status === "completed").length,
+          pending: todayAppts.filter((a) => a.status === "confirmed" || a.status === "checked_in").length,
         });
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     load();
-  }, [router]);
+  }, []);
 
-  async function updateStatus(id: string, status: string) {
-    const supabase = createClient();
-    const updates: Record<string, unknown> = { status };
+  async function updateStatus(id: string, status: StoredAppointment["status"]) {
+    const res = await fetch("/api/appointments/status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ appointmentId: id, status }),
+    });
 
-    if (status === "checked_in") {
-      updates.checked_in_at = new Date().toISOString();
-    }
-
-    const { error } = await supabase.from("appointments").update(updates).eq("id", id);
-    if (error) {
+    if (!res.ok) {
       toast.error("Failed to update appointment");
       return;
     }
 
-    if (status === "completed") {
-      await fetch("/api/appointments/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appointmentId: id }),
-      });
-    }
-
     setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: status as Appointment["status"] } : a))
+      prev.map((a) =>
+        a.id === id
+          ? {
+              ...a,
+              status,
+              checked_in_at: status === "checked_in" ? new Date().toISOString() : a.checked_in_at,
+            }
+          : a
+      )
     );
     toast.success(`Appointment ${status.replace("_", " ")}`);
   }
@@ -108,8 +84,6 @@ export default function DashboardPage() {
     checked_in: "border-gold text-gold",
     completed: "border-green-500/30 text-green-400",
     cancelled: "border-red-500/30 text-red-400",
-    no_show: "border-red-500/30 text-red-400",
-    pending: "border-yellow-500/30 text-yellow-400",
   };
 
   return (
@@ -117,7 +91,7 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-6xl">
         <PageHeader
           title="Barber Dashboard"
-          subtitle="Manage today's appointments and client check-ins."
+          subtitle="Manage today's appointments."
           className="mb-10"
         />
 
@@ -126,7 +100,7 @@ export default function DashboardPage() {
             { icon: Calendar, label: "Today", value: stats.today },
             { icon: Clock, label: "Pending", value: stats.pending },
             { icon: CheckCircle, label: "Completed", value: stats.completed },
-            { icon: Users, label: "This Week", value: stats.week },
+            { icon: Users, label: "All Bookings", value: stats.week },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -163,87 +137,68 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             ) : (
-              appointments.map((appt) => {
-                const customer = (appt as Appointment & { profiles?: { full_name: string; phone: string } }).profiles;
-                const service = (appt as Appointment & { services?: { name: string } }).services;
-                return (
-                  <Card key={appt.id} className="glass-card">
-                    <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <p className="font-heading text-xl">
-                            {format(new Date(appt.starts_at), "HH:mm")}
-                          </p>
-                          <Badge variant="outline" className={statusColor[appt.status]}>
-                            {appt.status.replace("_", " ")}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 font-medium">{customer?.full_name || "Walk-in"}</p>
-                        <p className="text-sm text-muted-foreground">{service?.name}</p>
-                        {customer?.phone && (
-                          <p className="text-xs text-muted-foreground">{customer.phone}</p>
-                        )}
-                        <p className="mt-1 text-xs text-gold">
-                          <QrCode className="mr-1 inline h-3 w-3" />
-                          {appt.check_in_code}
+              appointments.map((appt) => (
+                <Card key={appt.id} className="glass-card">
+                  <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <p className="font-heading text-xl">
+                          {format(new Date(appt.starts_at), "HH:mm")}
                         </p>
+                        <Badge variant="outline" className={statusColor[appt.status]}>
+                          {appt.status.replace("_", " ")}
+                        </Badge>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {appt.status === "confirmed" && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateStatus(appt.id, "checked_in")}
-                            className="gold-gradient border-0"
-                          >
-                            Check In
-                          </Button>
-                        )}
-                        {(appt.status === "confirmed" || appt.status === "checked_in") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateStatus(appt.id, "completed")}
-                            className="border-green-500/30 text-green-400"
-                          >
-                            Complete
-                          </Button>
-                        )}
-                        {appt.status !== "cancelled" && appt.status !== "completed" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateStatus(appt.id, "cancelled")}
-                            className="border-red-500/30 text-red-400"
-                          >
-                            <XCircle className="mr-1 h-3 w-3" /> Cancel
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
+                      <p className="mt-1 font-medium">{appt.customer_name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {appt.service_name} · {appt.barber_name}
+                      </p>
+                      {appt.customer_phone && (
+                        <p className="text-xs text-muted-foreground">{appt.customer_phone}</p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {appt.status === "confirmed" && (
+                        <Button
+                          size="sm"
+                          onClick={() => updateStatus(appt.id, "checked_in")}
+                          className="gold-gradient border-0"
+                        >
+                          Check In
+                        </Button>
+                      )}
+                      {(appt.status === "confirmed" || appt.status === "checked_in") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateStatus(appt.id, "completed")}
+                          className="border-green-500/30 text-green-400"
+                        >
+                          Complete
+                        </Button>
+                      )}
+                      {appt.status !== "cancelled" && appt.status !== "completed" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateStatus(appt.id, "cancelled")}
+                          className="border-red-500/30 text-red-400"
+                        >
+                          <XCircle className="mr-1 h-3 w-3" /> Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
             )}
           </TabsContent>
 
           <TabsContent value="reminders">
             <Card className="glass-card">
-              <CardContent className="p-6">
-                <h3 className="font-heading mb-4 text-xl">Automated Reminders</h3>
-                <div className="space-y-4 text-sm text-muted-foreground">
-                  <p>✉️ Email reminders sent 24 hours before appointment</p>
-                  <p>📱 SMS reminders sent 2 hours before appointment</p>
-                  <p>🎂 Birthday reminders sent on customer&apos;s birthday</p>
-                  <p className="text-xs">
-                    Reminders are processed via cron job at /api/reminders. Configure RESEND_API_KEY and TWILIO credentials in .env
-                  </p>
-                </div>
-                <Button
-                  className="gold-gradient mt-6 border-0"
-                  onClick={() => fetch("/api/reminders", { method: "POST" }).then(() => toast.success("Reminders triggered"))}
-                >
-                  Send Pending Reminders Now
-                </Button>
+              <CardContent className="p-6 text-sm text-muted-foreground">
+                <h3 className="font-heading mb-4 text-xl text-foreground">Reminders</h3>
+                <p>Email and SMS reminders can be wired up separately when you&apos;re ready.</p>
               </CardContent>
             </Card>
           </TabsContent>

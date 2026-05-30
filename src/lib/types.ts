@@ -42,14 +42,16 @@ export interface Barber {
 
 export interface Appointment {
   id: string;
-  customer_id: string;
+  customer_id: string | null;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  customer_email?: string | null;
   barber_id: string;
   service_id: string;
   starts_at: string;
   ends_at: string;
   status: AppointmentStatus;
   notes: string | null;
-  check_in_code: string;
   checked_in_at: string | null;
   reminder_email_sent: boolean;
   reminder_sms_sent: boolean;

@@ -1,69 +1,58 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { generateCheckInCode } from "@/lib/booking-utils";
+import { format } from "date-fns";
 import { BARBERS, SERVICES } from "@/lib/constants";
+import {
+  createAppointment,
+  findAppointmentsByIds,
+  readAppointments,
+} from "@/lib/store/appointments";
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await request.json();
-    const { serviceId, barberId, startsAt, endsAt, notes } = body;
+    const {
+      serviceId,
+      barberId,
+      startsAt,
+      endsAt,
+      notes,
+      customerName,
+      customerPhone,
+      customerEmail,
+    } = body;
+
+    const name = customerName?.trim();
+    const phone = customerPhone?.trim();
+    const email = customerEmail?.trim() || null;
+
+    if (!name || !phone) {
+      return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
+    }
 
     const service = SERVICES.find((s) => s.id === serviceId);
     if (!service) {
       return NextResponse.json({ error: "Invalid service" }, { status: 400 });
     }
 
-    const barberMeta = BARBERS.find((b) => b.id === barberId);
-    if (!barberMeta) {
+    const barber = BARBERS.find((b) => b.id === barberId);
+    if (!barber) {
       return NextResponse.json({ error: "Invalid barber" }, { status: 400 });
     }
 
-    const checkInCode = generateCheckInCode();
-
-    let dbServiceId = serviceId;
-    let dbBarberId = barberId;
-
-    const { data: dbService } = await supabase
-      .from("services")
-      .select("id")
-      .eq("slug", serviceId)
-      .single();
-
-    if (dbService) dbServiceId = dbService.id;
-
-    const { data: dbBarber } = await supabase
-      .from("barbers")
-      .select("id")
-      .eq("name", barberMeta.name)
-      .maybeSingle();
-
-    if (dbBarber) dbBarberId = dbBarber.id;
-
-    const { data: appointment, error } = await supabase
-      .from("appointments")
-      .insert({
-        customer_id: user.id,
-        barber_id: dbBarberId,
-        service_id: dbServiceId,
-        starts_at: startsAt,
-        ends_at: endsAt,
-        notes: notes || null,
-        check_in_code: checkInCode,
-        status: "confirmed",
-      })
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const appointment = await createAppointment({
+      customer_name: name,
+      customer_phone: phone,
+      customer_email: email,
+      barber_id: barber.id,
+      barber_name: barber.name,
+      service_id: service.id,
+      service_name: service.name,
+      service_duration: service.duration,
+      service_price: service.price,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      notes: notes || null,
+    });
 
     return NextResponse.json({ appointment });
   } catch {
@@ -71,23 +60,41 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get("date");
+    const barberId = searchParams.get("barberId");
+    const ids = searchParams.get("ids");
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (ids) {
+      const idList = ids.split(",").filter(Boolean);
+      const appointments = await findAppointmentsByIds(idList);
+      return NextResponse.json({ appointments });
+    }
+
+    if (date && barberId) {
+      const barber = BARBERS.find((b) => b.id === barberId);
+      if (!barber) {
+        return NextResponse.json({ error: "Invalid barber" }, { status: 400 });
+      }
+
+      const appointments = await readAppointments();
+      const bookedSlots = appointments
+        .filter(
+          (a) =>
+            a.barber_id === barberId &&
+            a.status !== "cancelled" &&
+            format(new Date(a.starts_at), "yyyy-MM-dd") === date
+        )
+        .map((a) => format(new Date(a.starts_at), "HH:mm"));
+
+      return NextResponse.json({ bookedSlots });
+    }
+
+    const appointments = await readAppointments();
+    return NextResponse.json({ appointments });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
-
-  const { data, error } = await supabase
-    .from("appointments")
-    .select("*, services(name, price, duration), barbers(name)")
-    .eq("customer_id", user.id)
-    .order("starts_at", { ascending: true });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ appointments: data });
 }

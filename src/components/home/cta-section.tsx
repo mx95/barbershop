@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Calendar, Gift, QrCode, Bell } from "lucide-react";
+import { Calendar, CalendarPlus, Gift, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SITE } from "@/lib/constants";
@@ -11,7 +11,7 @@ const perks = [
   { icon: Calendar, title: "Easy Online Booking", desc: "Book in seconds, 24/7" },
   { icon: Bell, title: "Smart Reminders", desc: "Email & SMS notifications" },
   { icon: Gift, title: "Loyalty Rewards", desc: "Earn points every visit" },
-  { icon: QrCode, title: "QR Check-In", desc: "Skip the queue, scan & sit" },
+  { icon: CalendarPlus, title: "Add to Calendar", desc: "One tap on any device" },
 ];
 
 export function CtaSection() {
