@@ -4,8 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
-import { format, addMinutes } from "date-fns";
+import { format, addMinutes, startOfDay } from "date-fns";
 import { Calendar as CalendarIcon, Clock, Check, ChevronLeft, ChevronRight, Scissors, User } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/navbar";
@@ -21,6 +20,7 @@ import { SERVICES, BARBERS, SITE } from "@/lib/constants";
 import { generateTimeSlots, formatPrice, formatDuration, isBarberAvailableDay, type CalendarEvent } from "@/lib/booking-utils";
 import { loadSavedCustomer, saveCustomer, saveBookingId } from "@/lib/customer-storage";
 import { useLanguage } from "@/lib/i18n/language-provider";
+import { useMounted } from "@/hooks/use-mounted";
 import { cn } from "@/lib/utils";
 
 interface CompletedBooking {
@@ -38,6 +38,7 @@ function selectionCardClass(selected: boolean) {
 function BookingWizardInner() {
   const searchParams = useSearchParams();
   const { t, serviceName } = useLanguage();
+  const mounted = useMounted();
   const [step, setStep] = useState(0);
   const [serviceId, setServiceId] = useState(searchParams.get("service") || "");
   const [barberId, setBarberId] = useState<(typeof BARBERS)[number]["id"]>(BARBERS[0].id);
@@ -50,10 +51,15 @@ function BookingWizardInner() {
   const [loading, setLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [completedBooking, setCompletedBooking] = useState<CompletedBooking | null>(null);
+  const [today, setToday] = useState<Date | null>(null);
 
   const service = SERVICES.find((s) => s.id === serviceId);
   const barber = BARBERS.find((b) => b.id === barberId);
   const timeSlots = date && service ? generateTimeSlots(date, service.duration, bookedSlots) : [];
+
+  useEffect(() => {
+    setToday(startOfDay(new Date()));
+  }, []);
 
   useEffect(() => {
     const saved = loadSavedCustomer();
@@ -213,47 +219,43 @@ function BookingWizardInner() {
   }
 
   return (
-    <div className="section-padding pb-28">
+    <div className="section-padding pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto max-w-3xl">
         <PageHeader
           title={t.booking.title}
           subtitle={t.booking.subtitle}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         />
 
-        <p className="mb-8 text-center text-sm text-muted-foreground">{t.booking.policy}</p>
+        <p className="mb-6 px-1 text-center text-xs text-muted-foreground sm:mb-8 sm:text-sm">{t.booking.policy}</p>
 
-        {/* Progress */}
-        <div className="mb-8 flex items-center justify-center gap-2">
+        {/* Progress — scrollable on small screens */}
+        <div className="mb-6 overflow-x-auto pb-1 sm:mb-8">
+          <div className="flex min-w-max items-center justify-center gap-1 px-1 sm:gap-2">
           {t.booking.steps.map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
+            <div key={s} className="flex items-center gap-1 sm:gap-2">
               <div
                 className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-colors",
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-colors sm:h-8 sm:w-8",
                   i <= step ? "gold-gradient text-primary-foreground" : "bg-muted text-muted-foreground"
                 )}
               >
-                {i < step ? <Check className="h-4 w-4" /> : i + 1}
+                {i < step ? <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : i + 1}
               </div>
-              <span className={cn("hidden text-xs sm:block", i <= step ? "text-gold" : "text-muted-foreground")}>
+              <span className={cn("hidden text-xs md:inline", i <= step ? "text-gold" : "text-muted-foreground")}>
                 {s}
               </span>
               {i < t.booking.steps.length - 1 && (
-                <div className={cn("mx-1 h-px w-8", i < step ? "bg-gold" : "bg-border")} />
+                <div className={cn("mx-0.5 h-px w-4 shrink-0 sm:mx-1 sm:w-8", i < step ? "bg-gold" : "bg-border")} />
               )}
             </div>
           ))}
+          </div>
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-          >
+        <div key={step} className="animate-in fade-in duration-200">
             {step === 0 && (
-              <div className="grid max-h-[min(50vh,26rem)] gap-3 overflow-y-auto pr-1">
+              <div className="grid max-h-[min(45vh,22rem)] gap-2 overflow-y-auto pr-1 sm:max-h-[min(50vh,26rem)] sm:gap-3">
                 {SERVICES.map((s) => {
                   const selected = serviceId === s.id;
                   return (
@@ -262,7 +264,7 @@ function BookingWizardInner() {
                     className={selectionCardClass(selected)}
                     onClick={() => setServiceId(s.id)}
                   >
-                    <CardContent className="flex items-center justify-between gap-4 p-5">
+                    <CardContent className="flex items-center justify-between gap-3 p-4 sm:gap-4 sm:p-5">
                       <div className="flex items-center gap-4">
                         <div
                           className={cn(
@@ -273,7 +275,7 @@ function BookingWizardInner() {
                           {selected ? <Check className="h-5 w-5" /> : <Scissors className="h-5 w-5" />}
                         </div>
                         <div>
-                          <h3 className="font-heading text-lg">{serviceName(s.id, s.name)}</h3>
+                          <h3 className="font-heading text-base sm:text-lg">{serviceName(s.id, s.name)}</h3>
                           <p className="text-sm text-muted-foreground">{formatDuration(s.duration)}</p>
                         </div>
                       </div>
@@ -329,21 +331,27 @@ function BookingWizardInner() {
             )}
 
             {step === 2 && (
-              <div className="grid gap-8 lg:grid-cols-2">
+              <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
                 <div>
                   <Label className="mb-3 flex items-center gap-2">
                     <CalendarIcon className="h-4 w-4 text-gold" /> {t.booking.selectDate}
                   </Label>
+                  {mounted && today ? (
                   <Calendar
                     mode="single"
                     selected={date}
                     onSelect={setDate}
                     weekStartsOn={1}
                     disabled={(d) =>
-                      d < new Date(new Date().setHours(0, 0, 0, 0)) || !isBarberAvailableDay(d, barberId)
+                      d < today || !isBarberAvailableDay(d, barberId)
                     }
-                    className="glass-card rounded-xl border-gold/20 p-3"
+                    className="glass-card mx-auto w-full max-w-sm rounded-xl border-gold/20 p-2 sm:p-3"
                   />
+                  ) : (
+                    <div className="glass-card mx-auto flex h-64 max-w-sm items-center justify-center rounded-xl border-gold/20">
+                      <span className="text-sm text-muted-foreground">...</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label className="mb-3 flex items-center gap-2">
@@ -354,7 +362,7 @@ function BookingWizardInner() {
                   ) : timeSlots.length === 0 ? (
                     <p className="text-sm text-muted-foreground">{t.booking.noSlots}</p>
                   ) : (
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                       {timeSlots.map((slot) => (
                         <Button
                           key={slot}
@@ -376,7 +384,7 @@ function BookingWizardInner() {
 
             {step === 3 && (
               <Card className="glass-card">
-                <CardContent className="space-y-5 p-8">
+                <CardContent className="space-y-5 p-5 sm:p-8">
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-gold" />
                     <h3 className="font-heading text-2xl">{t.booking.yourDetails}</h3>
@@ -422,7 +430,7 @@ function BookingWizardInner() {
 
             {step === 4 && service && barber && date && time && (
               <Card className="glass-card">
-                <CardContent className="space-y-6 p-8">
+                <CardContent className="space-y-6 p-5 sm:p-8">
                   <h3 className="font-heading text-2xl">{t.booking.summary}</h3>
                   <div className="space-y-3">
                     {[
@@ -469,18 +477,17 @@ function BookingWizardInner() {
                 </CardContent>
               </Card>
             )}
-          </motion.div>
-        </AnimatePresence>
+        </div>
       </div>
 
       {/* Sticky step navigation — always visible without scrolling */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gold/20 bg-background/95 px-4 py-4 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-3xl justify-between">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gold/20 bg-background/95 px-3 py-3 backdrop-blur-xl pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-4 sm:py-4">
+        <div className="mx-auto flex max-w-3xl justify-between gap-3">
           <Button
             variant="outline"
             onClick={() => goToStep(step - 1)}
             disabled={step === 0}
-            className="border-gold/30"
+            className="min-w-[5.5rem] flex-1 border-gold/30 sm:flex-none sm:min-w-0"
           >
             <ChevronLeft className="mr-1 h-4 w-4" /> {t.booking.back}
           </Button>
@@ -488,7 +495,7 @@ function BookingWizardInner() {
             <Button
               onClick={() => goToStep(step + 1)}
               disabled={!canProceed()}
-              className="gold-gradient border-0"
+              className="gold-gradient min-w-[5.5rem] flex-1 border-0 sm:flex-none sm:min-w-0"
             >
               {t.booking.next} <ChevronRight className="ml-1 h-4 w-4" />
             </Button>

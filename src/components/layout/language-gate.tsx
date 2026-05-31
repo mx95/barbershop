@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LOCALE_KEY } from "@/lib/i18n/translations";
 import { useLanguage } from "@/lib/i18n/language-provider";
+import { useMounted } from "@/hooks/use-mounted";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,19 +16,22 @@ import { LogoMark } from "@/components/brand/logo-mark";
 import { SITE } from "@/lib/constants";
 
 export function LanguageGate() {
-  const { setLocale, t, ready } = useLanguage();
+  const { setLocale, t, mounted: localeReady } = useLanguage();
+  const mounted = useMounted();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!localeReady) return;
     const saved = localStorage.getItem(LOCALE_KEY);
     if (!saved) setOpen(true);
-  }, [ready]);
+  }, [localeReady]);
 
   function choose(locale: "en" | "el") {
     setLocale(locale);
     setOpen(false);
   }
+
+  if (!mounted) return null;
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>

@@ -46,12 +46,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${cormorant.variable} ${inter.variable} ${oswald.variable} dark`}>
+    <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${inter.variable} ${oswald.variable} dark`}>
       <body className="min-h-screen bg-background font-sans antialiased">
         <LanguageProvider>
           <LanguageGate />
           <Navbar />
-          <main className="min-h-screen pt-20">{children}</main>
+          <main className="min-h-screen pt-16 sm:pt-20">{children}</main>
           <Footer />
           <Toaster theme="dark" position="top-right" />
         </LanguageProvider>

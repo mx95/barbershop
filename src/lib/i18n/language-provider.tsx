@@ -8,21 +8,22 @@ interface LanguageContextValue {
   setLocale: (locale: Locale) => void;
   t: Translations;
   serviceName: (serviceId: string, fallback: string) => string;
-  ready: boolean;
+  /** False during SSR and first client paint — locale may still be loading from storage. */
+  mounted: boolean;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
-  const [ready, setReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(LOCALE_KEY) as Locale | null;
-    if (saved === "en" || saved === "el") {
-      setLocaleState(saved);
-    }
-    setReady(true);
+    const next = saved === "en" || saved === "el" ? saved : "en";
+    setLocaleState(next);
+    document.documentElement.lang = next;
+    setMounted(true);
   }, []);
 
   const setLocale = useCallback((next: Locale) => {
@@ -39,7 +40,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <LanguageContext.Provider value={{ locale, setLocale, t, serviceName, ready }}>
+    <LanguageContext.Provider value={{ locale, setLocale, t, serviceName, mounted }}>
       {children}
     </LanguageContext.Provider>
   );
