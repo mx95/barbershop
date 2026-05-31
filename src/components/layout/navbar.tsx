@@ -2,15 +2,27 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Menu, Calendar, User } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { SITE, NAV_LINKS } from "@/lib/constants";
+import { AppointmentSearch } from "@/components/booking/appointment-search";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { useLanguage } from "@/lib/i18n/language-provider";
+import { SITE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+
+const NAV_HREFS = [
+  { href: "/", key: "home" as const },
+  { href: "/gallery", key: "gallery" as const },
+  { href: "/about", key: "about" as const },
+  { href: "/contact", key: "contact" as const },
+];
+
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <header className="fixed top-0 z-50 w-full border-b border-gold/10 bg-background/80 backdrop-blur-xl">
@@ -26,28 +38,30 @@ export function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-8 lg:flex">
-          {NAV_LINKS.map((link) => (
+          {NAV_HREFS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               className="text-sm tracking-wide text-muted-foreground transition-colors hover:text-gold"
             >
-              {link.label}
+              {t.nav[link.key]}
             </Link>
           ))}
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
+          <AppointmentSearch />
+          <LanguageSwitcher />
           <Button variant="ghost" size="sm" asChild>
             <Link href="/account">
               <User className="mr-2 h-4 w-4" />
-              Account
+              {t.nav.account}
             </Link>
           </Button>
           <Button size="sm" asChild className="gold-gradient border-0 text-primary-foreground">
             <Link href="/booking">
               <Calendar className="mr-2 h-4 w-4" />
-              Book Now
+              {t.nav.bookNow}
             </Link>
           </Button>
         </div>
@@ -58,7 +72,7 @@ export function Navbar() {
           </SheetTrigger>
           <SheetContent side="right" className="border-gold/20 bg-background/95 backdrop-blur-xl">
             <div className="mt-8 flex flex-col gap-6">
-              {NAV_LINKS.map((link, i) => (
+              {NAV_HREFS.map((link, i) => (
                 <motion.div
                   key={link.href}
                   initial={{ opacity: 0, x: 20 }}
@@ -70,16 +84,20 @@ export function Navbar() {
                     onClick={() => setOpen(false)}
                     className="font-heading text-2xl text-foreground hover:text-gold"
                   >
-                    {link.label}
+                    {t.nav[link.key]}
                   </Link>
                 </motion.div>
               ))}
               <div className="mt-4 flex flex-col gap-3 border-t border-gold/20 pt-6">
+                <div className="flex items-center justify-between">
+                  <AppointmentSearch />
+                  <LanguageSwitcher />
+                </div>
                 <Button variant="outline" asChild>
-                  <Link href="/account" onClick={() => setOpen(false)}>Account</Link>
+                  <Link href="/account" onClick={() => setOpen(false)}>{t.nav.account}</Link>
                 </Button>
                 <Button asChild className="gold-gradient border-0">
-                  <Link href="/booking" onClick={() => setOpen(false)}>Book Appointment</Link>
+                  <Link href="/booking" onClick={() => setOpen(false)}>{t.nav.bookAppointment}</Link>
                 </Button>
               </div>
             </div>

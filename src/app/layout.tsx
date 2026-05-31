@@ -3,6 +3,8 @@ import { Cormorant_Garamond, Inter, Oswald } from "next/font/google";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Toaster } from "@/components/ui/sonner";
+import { LanguageProvider } from "@/lib/i18n/language-provider";
+import { LanguageGate } from "@/components/layout/language-gate";
 import { SITE } from "@/lib/constants";
 import "./globals.css";
 
@@ -46,10 +48,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${cormorant.variable} ${inter.variable} ${oswald.variable} dark`}>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <Navbar />
-        <main className="min-h-screen pt-20">{children}</main>
-        <Footer />
-        <Toaster theme="dark" position="top-right" />
+        <LanguageProvider>
+          <LanguageGate />
+          <Navbar />
+          <main className="min-h-screen pt-20">{children}</main>
+          <Footer />
+          <Toaster theme="dark" position="top-right" />
+        </LanguageProvider>
       </body>
     </html>
   );

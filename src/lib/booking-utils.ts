@@ -1,4 +1,4 @@
-import { format, addMinutes, setHours, setMinutes, isBefore, isAfter, startOfDay } from "date-fns";
+import { format, addMinutes, setHours, setMinutes, isBefore, isAfter, startOfDay, differenceInHours } from "date-fns";
 import { SITE, CLOSED_DAYS, BARBERS } from "./constants";
 
 export function isClosedDay(date: Date): boolean {
@@ -150,4 +150,15 @@ export function addEventToCalendar(event: CalendarEvent) {
   }
 
   window.open(buildGoogleCalendarUrl(event), "_blank", "noopener,noreferrer");
+}
+
+/** Bookings can be changed or cancelled until 24 hours before start time. */
+export function canModifyBooking(startsAt: Date | string): boolean {
+  const start = typeof startsAt === "string" ? new Date(startsAt) : startsAt;
+  return differenceInHours(start, new Date()) >= 24;
+}
+
+export function getModifyDeadline(startsAt: Date | string): Date {
+  const start = typeof startsAt === "string" ? new Date(startsAt) : startsAt;
+  return addMinutes(start, -24 * 60);
 }

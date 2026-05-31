@@ -5,6 +5,7 @@ import {
   createAppointment,
   findAppointmentsByIds,
   readAppointments,
+  searchAppointments,
 } from "@/lib/store/appointments";
 
 export async function POST(request: Request) {
@@ -66,6 +67,12 @@ export async function GET(request: Request) {
     const date = searchParams.get("date");
     const barberId = searchParams.get("barberId");
     const ids = searchParams.get("ids");
+    const search = searchParams.get("search");
+
+    if (search) {
+      const appointments = await searchAppointments(search);
+      return NextResponse.json({ appointments });
+    }
 
     if (ids) {
       const idList = ids.split(",").filter(Boolean);

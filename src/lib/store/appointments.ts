@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { format } from "date-fns";
 
 export type AppointmentStatus = "confirmed" | "checked_in" | "completed" | "cancelled";
 
@@ -66,7 +67,22 @@ export async function createAppointment(
 
 export async function updateAppointmentById(
   id: string,
-  updates: Partial<Pick<StoredAppointment, "status" | "checked_in_at">>
+  updates: Partial<
+    Pick<
+      StoredAppointment,
+      | "status"
+      | "checked_in_at"
+      | "starts_at"
+      | "ends_at"
+      | "barber_id"
+      | "barber_name"
+      | "service_id"
+      | "service_name"
+      | "service_duration"
+      | "service_price"
+      | "notes"
+    >
+  >
 ): Promise<StoredAppointment | null> {
   const appointments = await readAppointments();
   const index = appointments.findIndex((a) => a.id === id);
@@ -81,4 +97,32 @@ export async function findAppointmentsByIds(ids: string[]) {
   const set = new Set(ids);
   const appointments = await readAppointments();
   return appointments.filter((a) => set.has(a.id));
+}
+
+export async function findAppointmentById(id: string) {
+  const appointments = await readAppointments();
+  return appointments.find((a) => a.id === id) ?? null;
+}
+
+export async function searchAppointments(query: string) {
+  const q = query.trim().toLowerCase();
+  if (q.length < 2) return [];
+
+  const appointments = await readAppointments();
+  return appointments.filter((a) => {
+    const dateStr = format(new Date(a.starts_at), "yyyy-MM-dd HH:mm EEEE");
+    const haystack = [
+      a.customer_name,
+      a.customer_phone,
+      a.customer_email ?? "",
+      a.service_name,
+      a.barber_name,
+      a.id,
+      a.status,
+      dateStr,
+    ]
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(q);
+  });
 }

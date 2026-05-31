@@ -20,9 +20,8 @@ import { AddToCalendar } from "@/components/booking/add-to-calendar";
 import { SERVICES, BARBERS, SITE } from "@/lib/constants";
 import { generateTimeSlots, formatPrice, formatDuration, isBarberAvailableDay, type CalendarEvent } from "@/lib/booking-utils";
 import { loadSavedCustomer, saveCustomer, saveBookingId } from "@/lib/customer-storage";
+import { useLanguage } from "@/lib/i18n/language-provider";
 import { cn } from "@/lib/utils";
-
-const STEPS = ["Service", "Barber", "Date & Time", "Your Details", "Confirm"];
 
 interface CompletedBooking {
   calendarEvent: CalendarEvent;
@@ -38,6 +37,7 @@ function selectionCardClass(selected: boolean) {
 
 function BookingWizardInner() {
   const searchParams = useSearchParams();
+  const { t, serviceName } = useLanguage();
   const [step, setStep] = useState(0);
   const [serviceId, setServiceId] = useState(searchParams.get("service") || "");
   const [barberId, setBarberId] = useState<(typeof BARBERS)[number]["id"]>(BARBERS[0].id);
@@ -84,13 +84,21 @@ function BookingWizardInner() {
     setDate((current) => (current && !isBarberAvailableDay(current, barberId) ? undefined : current));
   }, [barberId]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [step, completedBooking]);
+
+  function goToStep(next: number) {
+    setStep(next);
+  }
+
   async function handleConfirm() {
     if (!service || !date || !time) return;
 
     setLoading(true);
 
     if (!customerName.trim() || !customerPhone.trim()) {
-      toast.error("Please enter your name and phone number");
+      toast.error(t.booking.nameRequired);
       setLoading(false);
       return;
     }
@@ -143,7 +151,7 @@ function BookingWizardInner() {
         },
       });
 
-      toast.success("Appointment booked successfully!");
+      toast.success(t.booking.success);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -169,9 +177,10 @@ function BookingWizardInner() {
                 <Check className="h-8 w-8 text-gold" />
               </div>
               <div>
-                <h2 className="font-heading text-3xl">You&apos;re Booked!</h2>
+                <h2 className="font-heading text-3xl">{t.booking.booked}</h2>
                 <p className="mt-2 text-muted-foreground">
-                  {service.name} with {barber.name} on {format(date, "EEEE, MMMM d")} at {time}
+                  {serviceName(service.id, service.name)} {t.account.with} {barber.name} ·{" "}
+                  {format(date, "EEEE, MMMM d")} · {time}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {customerName} · {customerPhone}
@@ -180,7 +189,7 @@ function BookingWizardInner() {
               <AddToCalendar event={completedBooking.calendarEvent} />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button variant="outline" className="flex-1 border-gold/30" asChild>
-                  <Link href="/">Back to Home</Link>
+                  <Link href="/">{t.booking.backHome}</Link>
                 </Button>
                 <Button
                   className="gold-gradient flex-1 border-0"
@@ -193,7 +202,7 @@ function BookingWizardInner() {
                     setNotes("");
                   }}
                 >
-                  Book Another
+                  {t.booking.bookAnother}
                 </Button>
               </div>
             </CardContent>
@@ -204,17 +213,19 @@ function BookingWizardInner() {
   }
 
   return (
-    <div className="section-padding">
+    <div className="section-padding pb-28">
       <div className="mx-auto max-w-3xl">
         <PageHeader
-          title="Book Appointment"
-          subtitle="Select your service, choose a time, and secure your chair."
-          className="mb-12"
+          title={t.booking.title}
+          subtitle={t.booking.subtitle}
+          className="mb-8"
         />
 
+        <p className="mb-8 text-center text-sm text-muted-foreground">{t.booking.policy}</p>
+
         {/* Progress */}
-        <div className="mb-10 flex items-center justify-center gap-2">
-          {STEPS.map((s, i) => (
+        <div className="mb-8 flex items-center justify-center gap-2">
+          {t.booking.steps.map((s, i) => (
             <div key={s} className="flex items-center gap-2">
               <div
                 className={cn(
@@ -227,7 +238,7 @@ function BookingWizardInner() {
               <span className={cn("hidden text-xs sm:block", i <= step ? "text-gold" : "text-muted-foreground")}>
                 {s}
               </span>
-              {i < STEPS.length - 1 && (
+              {i < t.booking.steps.length - 1 && (
                 <div className={cn("mx-1 h-px w-8", i < step ? "bg-gold" : "bg-border")} />
               )}
             </div>
@@ -242,7 +253,7 @@ function BookingWizardInner() {
             exit={{ opacity: 0, x: -20 }}
           >
             {step === 0 && (
-              <div className="grid gap-4">
+              <div className="grid max-h-[min(50vh,26rem)] gap-3 overflow-y-auto pr-1">
                 {SERVICES.map((s) => {
                   const selected = serviceId === s.id;
                   return (
@@ -262,7 +273,7 @@ function BookingWizardInner() {
                           {selected ? <Check className="h-5 w-5" /> : <Scissors className="h-5 w-5" />}
                         </div>
                         <div>
-                          <h3 className="font-heading text-lg">{s.name}</h3>
+                          <h3 className="font-heading text-lg">{serviceName(s.id, s.name)}</h3>
                           <p className="text-sm text-muted-foreground">{formatDuration(s.duration)}</p>
                         </div>
                       </div>
@@ -307,7 +318,7 @@ function BookingWizardInner() {
                         <p className="text-sm text-gold">{b.title}</p>
                         <p className="mt-1 text-sm text-muted-foreground">{b.bio}</p>
                         <p className="mt-2 text-xs tracking-wide text-white/70 uppercase">
-                          Available {b.scheduleLabel}
+                          {t.booking.available} {b.scheduleLabel}
                         </p>
                       </div>
                     </CardContent>
@@ -321,7 +332,7 @@ function BookingWizardInner() {
               <div className="grid gap-8 lg:grid-cols-2">
                 <div>
                   <Label className="mb-3 flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-gold" /> Select Date
+                    <CalendarIcon className="h-4 w-4 text-gold" /> {t.booking.selectDate}
                   </Label>
                   <Calendar
                     mode="single"
@@ -336,12 +347,12 @@ function BookingWizardInner() {
                 </div>
                 <div>
                   <Label className="mb-3 flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gold" /> Select Time
+                    <Clock className="h-4 w-4 text-gold" /> {t.booking.selectTime}
                   </Label>
                   {!date ? (
-                    <p className="text-sm text-muted-foreground">Please select a date first</p>
+                    <p className="text-sm text-muted-foreground">{t.booking.selectDateFirst}</p>
                   ) : timeSlots.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No available slots for this date</p>
+                    <p className="text-sm text-muted-foreground">{t.booking.noSlots}</p>
                   ) : (
                     <div className="grid grid-cols-3 gap-2">
                       {timeSlots.map((slot) => (
@@ -368,13 +379,11 @@ function BookingWizardInner() {
                 <CardContent className="space-y-5 p-8">
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-gold" />
-                    <h3 className="font-heading text-2xl">Your Details</h3>
+                    <h3 className="font-heading text-2xl">{t.booking.yourDetails}</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    We need your name and phone so we can confirm your appointment and reach you if needed.
-                  </p>
+                  <p className="text-sm text-muted-foreground">{t.booking.detailsHint}</p>
                   <div>
-                    <Label htmlFor="customerName">Full Name *</Label>
+                    <Label htmlFor="customerName">{t.booking.fullName} *</Label>
                     <Input
                       id="customerName"
                       value={customerName}
@@ -385,7 +394,7 @@ function BookingWizardInner() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="customerPhone">Phone *</Label>
+                    <Label htmlFor="customerPhone">{t.booking.phone} *</Label>
                     <Input
                       id="customerPhone"
                       type="tel"
@@ -397,7 +406,7 @@ function BookingWizardInner() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="customerEmail">Email (optional)</Label>
+                    <Label htmlFor="customerEmail">{t.booking.email}</Label>
                     <Input
                       id="customerEmail"
                       type="email"
@@ -414,25 +423,25 @@ function BookingWizardInner() {
             {step === 4 && service && barber && date && time && (
               <Card className="glass-card">
                 <CardContent className="space-y-6 p-8">
-                  <h3 className="font-heading text-2xl">Booking Summary</h3>
+                  <h3 className="font-heading text-2xl">{t.booking.summary}</h3>
                   <div className="space-y-3">
                     {[
-                      ["Customer", customerName],
-                      ["Phone", customerPhone],
-                      ...(customerEmail ? [["Email", customerEmail] as const] : []),
-                      ["Service", service.name],
-                      ["Barber", barber.name],
-                      ["Date", format(date, "EEEE, MMMM d, yyyy")],
-                      ["Time", time],
-                      ["Duration", formatDuration(service.duration)],
-                      ["Price", formatPrice(service.price)],
+                      [t.booking.customer, customerName],
+                      [t.booking.phone, customerPhone],
+                      ...(customerEmail ? [[t.common.email, customerEmail] as const] : []),
+                      [t.common.service, serviceName(service.id, service.name)],
+                      [t.common.barber, barber.name],
+                      [t.common.date, format(date, "EEEE, MMMM d, yyyy")],
+                      [t.common.time, time],
+                      [t.booking.duration, formatDuration(service.duration)],
+                      [t.booking.price, formatPrice(service.price)],
                     ].map(([label, value]) => (
                       <div key={label} className="flex justify-between border-b border-gold/10 pb-2">
                         <span className="text-muted-foreground">{label}</span>
                         <span
                           className={cn(
                             "font-medium",
-                            label === "Price" && "font-price text-xl font-semibold text-gold tabular-nums"
+                            label === t.booking.price && "font-price text-xl font-semibold text-gold tabular-nums"
                           )}
                         >
                           {value}
@@ -441,12 +450,12 @@ function BookingWizardInner() {
                     ))}
                   </div>
                   <div>
-                    <Label htmlFor="notes">Notes (optional)</Label>
+                    <Label htmlFor="notes">{t.booking.notes}</Label>
                     <Textarea
                       id="notes"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Any special requests..."
+                      placeholder={t.booking.notesPlaceholder}
                       className="mt-1.5 border-gold/20 bg-white/5"
                     />
                   </div>
@@ -455,30 +464,33 @@ function BookingWizardInner() {
                     disabled={loading}
                     className="gold-gradient h-12 w-full border-0 text-base"
                   >
-                    {loading ? "Confirming..." : "Confirm Booking"}
+                    {loading ? t.booking.confirming : t.booking.confirm}
                   </Button>
                 </CardContent>
               </Card>
             )}
           </motion.div>
         </AnimatePresence>
+      </div>
 
-        <div className="mt-8 flex justify-between">
+      {/* Sticky step navigation — always visible without scrolling */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gold/20 bg-background/95 px-4 py-4 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-3xl justify-between">
           <Button
             variant="outline"
-            onClick={() => setStep((s) => s - 1)}
+            onClick={() => goToStep(step - 1)}
             disabled={step === 0}
             className="border-gold/30"
           >
-            <ChevronLeft className="mr-1 h-4 w-4" /> Back
+            <ChevronLeft className="mr-1 h-4 w-4" /> {t.booking.back}
           </Button>
           {step < 4 && (
             <Button
-              onClick={() => setStep((s) => s + 1)}
+              onClick={() => goToStep(step + 1)}
               disabled={!canProceed()}
               className="gold-gradient border-0"
             >
-              Next <ChevronRight className="ml-1 h-4 w-4" />
+              {t.booking.next} <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           )}
         </div>
