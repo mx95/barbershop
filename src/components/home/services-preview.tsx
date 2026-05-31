@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,14 +25,8 @@ export function ServicesPreview() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {featured.map((service, i) => (
-            <motion.div
-              key={service.id}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-            >
+          {featured.map((service) => (
+            <div key={service.id}>
               <Card className="glass-card group h-full transition-all hover:border-gold/40 hover:bg-white/10">
                 <CardContent className="flex h-full flex-col p-6">
                   <div className="mb-4 flex items-start justify-between">
@@ -52,7 +45,7 @@ export function ServicesPreview() {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
 

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { Camera } from "lucide-react";
 import { SITE } from "@/lib/constants";
 import type { InstagramPost } from "@/lib/types";
@@ -33,7 +32,7 @@ export function InstagramFeed() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-12 text-center">
           <p className="mb-3 text-sm tracking-[0.3em] text-gold uppercase">Social</p>
-          <h2 className="font-heading text-4xl font-light sm:text-5xl">Follow the Craft</h2>
+          <h2 className="font-heading text-3xl font-light sm:text-4xl lg:text-5xl">Follow the Craft</h2>
           <a
             href={SITE.instagramUrl}
             target="_blank"
@@ -45,17 +44,13 @@ export function InstagramFeed() {
           </a>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {posts.map((post, i) => (
-            <motion.a
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
+          {posts.map((post) => (
+            <a
               key={post.id}
               href={post.permalink}
               target="_blank"
               rel="noopener noreferrer"
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
               className="group relative aspect-square overflow-hidden rounded-lg"
             >
               <Image
@@ -65,10 +60,10 @@ export function InstagramFeed() {
                 className="object-cover transition-transform duration-500 group-hover:scale-110"
                 sizes="(max-width: 640px) 50vw, 16vw"
               />
-              <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100 sm:p-3">
                 <p className="line-clamp-2 text-xs text-white">{post.caption}</p>
               </div>
-            </motion.a>
+            </a>
           ))}
         </div>
       </div>
