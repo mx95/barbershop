@@ -17,6 +17,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+        ],
+      },
+      {
+        source: "/fallback.css",
+        headers: [{ key: "Content-Type", value: "text/css; charset=utf-8" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

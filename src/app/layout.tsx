@@ -58,6 +58,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${inter.variable} ${oswald.variable} dark`}>
+      <head>
+        <link rel="stylesheet" href="/fallback.css" precedence="default" />
+      </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <LanguageProvider>
           <LanguageGate />
