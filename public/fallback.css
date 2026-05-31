@@ -33,8 +33,24 @@ a {
   text-decoration: none;
 }
 
-a:hover {
+a:hover:not(.gold-gradient) {
   text-decoration: underline;
+}
+
+a.gold-gradient,
+button.gold-gradient,
+[data-slot="button"].gold-gradient,
+.gold-gradient {
+  color: #0a0a0c;
+  font-weight: 600;
+}
+
+a.gold-gradient:hover,
+button.gold-gradient:hover,
+[data-slot="button"].gold-gradient:hover,
+.gold-gradient:hover {
+  color: #0a0a0c;
+  text-decoration: none;
 }
 
 header {

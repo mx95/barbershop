@@ -59,7 +59,7 @@ export function Navbar() {
               {t.nav.account}
             </Link>
           </Button>
-          <Button size="sm" asChild className="gold-gradient border-0 text-primary-foreground">
+          <Button size="sm" asChild className="gold-gradient border-0">
             <Link href="/booking">
               <Calendar className="mr-2 h-4 w-4" />
               {t.nav.bookNow}
@@ -71,7 +71,7 @@ export function Navbar() {
         <div className="flex items-center gap-0.5 sm:gap-1 lg:hidden">
           <AppointmentSearch />
           <LanguageSwitcher />
-          <Button size="icon-sm" asChild className="gold-gradient border-0 text-primary-foreground">
+          <Button size="icon-sm" asChild className="gold-gradient border-0">
             <Link href="/booking" aria-label={t.nav.bookNow}>
               <Calendar className="h-4 w-4" />
             </Link>

@@ -160,6 +160,24 @@
   .gold-gradient {
     background: linear-gradient(135deg, #dfc06a, #9a7b2f);
     background: linear-gradient(135deg, oklch(0.82 0.1 85), oklch(0.58 0.1 75));
+    color: #0a0a0c;
+    font-weight: 600;
+  }
+  a.gold-gradient,
+  button.gold-gradient,
+  [data-slot="button"].gold-gradient {
+    color: #0a0a0c;
+    font-weight: 600;
+  }
+  .gold-gradient:hover,
+  a.gold-gradient:hover,
+  button.gold-gradient:hover,
+  [data-slot="button"].gold-gradient:hover {
+    color: #0a0a0c;
+    filter: brightness(1.06);
+  }
+  .gold-gradient svg {
+    color: currentColor;
   }
   .gold-text {
     @apply bg-clip-text text-transparent;

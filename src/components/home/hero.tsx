@@ -38,7 +38,7 @@ export function Hero() {
         </p>
 
         <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <Button size="lg" asChild className="gold-gradient h-12 border-0 text-base sm:h-14 sm:px-8">
+          <Button size="lg" asChild className="gold-gradient h-12 border-0 text-base font-semibold sm:h-14 sm:px-8">
             <Link href="/booking">
               Book Your Session
               <ArrowRight className="ml-2 h-5 w-5" />

@@ -19,7 +19,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         className={cn(
           "rounded px-1.5 py-1 transition-colors sm:px-2",
           mounted && locale === "en"
-            ? "bg-gold text-primary-foreground"
+            ? "bg-gold font-semibold text-[#0a0a0c]"
             : "text-muted-foreground hover:text-foreground"
         )}
       >
@@ -31,7 +31,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         className={cn(
           "rounded px-1.5 py-1 transition-colors sm:px-2",
           mounted && locale === "el"
-            ? "bg-gold text-primary-foreground"
+            ? "bg-gold font-semibold text-[#0a0a0c]"
             : "text-muted-foreground hover:text-foreground"
         )}
       >
