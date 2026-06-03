@@ -2,10 +2,10 @@
 
 import { useState, useEffect, Suspense, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { format, addMinutes, startOfDay } from "date-fns";
-import { Calendar as CalendarIcon, Clock, Check, Scissors, User, UserRound, UserCheck } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Check, ChevronLeft, Scissors, User } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ function selectionCardClass(selected: boolean) {
 
 function BookingWizardInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { t, serviceName } = useLanguage();
   const mounted = useMounted();
   const [bookingMode, setBookingMode] = useState<BookingMode | null>(null);
@@ -72,6 +73,7 @@ function BookingWizardInner() {
   const service = SERVICES.find((s) => s.id === serviceId);
   const barber = BARBERS.find((b) => b.id === barberId);
   const timeSlots = date && service ? generateTimeSlots(date, service.duration, bookedSlots) : [];
+  const isLoggedIn = !!(savedCustomer?.name?.trim() && savedCustomer?.phone?.trim());
 
   useEffect(() => {
     setToday(startOfDay(new Date()));
@@ -92,7 +94,12 @@ function BookingWizardInner() {
   useEffect(() => {
     const saved = loadSavedCustomer();
     setSavedCustomer(saved);
-    if (!saved?.name || !saved?.phone) {
+    if (saved?.name?.trim() && saved?.phone?.trim()) {
+      setCustomerName(saved.name);
+      setCustomerPhone(saved.phone);
+      setCustomerEmail(saved.email ?? "");
+      setBookingMode("returning");
+    } else {
       setBookingMode("guest");
     }
   }, []);
@@ -147,17 +154,23 @@ function BookingWizardInner() {
     setCustomerEmail("");
   }
 
-  function startAsGuest() {
-    clearCustomerFields();
-    setBookingMode("guest");
-    setStep(0);
+  function goBack() {
+    if (step === 2 && compactDateTime && dateTimePhase === "time") {
+      setDateTimePhase("date");
+      return;
+    }
+    if (step > 0) {
+      setStep(step - 1);
+      return;
+    }
+    if (isLoggedIn) {
+      router.push("/account");
+      return;
+    }
+    router.push("/");
   }
 
-  function startWithSaved() {
-    if (savedCustomer) applySavedCustomer(savedCustomer);
-    setBookingMode("returning");
-    setStep(0);
-  }
+  const showBackButton = bookingMode !== null;
 
   function selectService(id: string) {
     setServiceId(id);
@@ -258,11 +271,12 @@ function BookingWizardInner() {
     setDate(undefined);
     setTime("");
     setNotes("");
+    setDateTimePhase("date");
     const saved = loadSavedCustomer();
     setSavedCustomer(saved);
-    if (saved?.name && saved?.phone) {
-      setBookingMode(null);
-      clearCustomerFields();
+    if (saved?.name?.trim() && saved?.phone?.trim()) {
+      applySavedCustomer(saved);
+      setBookingMode("returning");
     } else {
       setBookingMode("guest");
       clearCustomerFields();
@@ -317,38 +331,30 @@ function BookingWizardInner() {
           {t.booking.policy}
         </p>
 
-        {bookingMode === null && savedCustomer?.name && savedCustomer?.phone ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card className={selectionCardClass(false)} onClick={startAsGuest}>
-              <CardContent className="flex flex-col gap-3 p-6 sm:p-8">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-gold">
-                  <UserRound className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-heading text-xl">{t.booking.bookAsGuest}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{t.booking.bookAsGuestHint}</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className={selectionCardClass(false)} onClick={startWithSaved}>
-              <CardContent className="flex flex-col gap-3 p-6 sm:p-8">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-gold">
-                  <UserCheck className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-heading text-xl">{t.booking.continueSaved}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {t.booking.continueSavedHint}
-                  </p>
-                  <p className="mt-2 text-sm font-medium text-gold">
-                    {savedCustomer.name} · {savedCustomer.phone}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        {!mounted || bookingMode === null ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">...</div>
         ) : (
           <>
+            {showBackButton && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={goBack}
+                className="mb-4 -ml-1 gap-1 text-muted-foreground hover:text-gold"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                {step === 0 && isLoggedIn ? t.booking.backToAccount : t.booking.back}
+              </Button>
+            )}
+
+            {isLoggedIn && step === 0 && (
+              <p className="mb-4 text-center text-sm text-muted-foreground">
+                {t.booking.welcomeBack}{" "}
+                <span className="font-medium text-gold">{savedCustomer!.name}</span>
+              </p>
+            )}
+
             <p className="mb-4 text-center text-xs text-muted-foreground sm:mb-6 sm:text-sm">
               {t.booking.tapHint}
             </p>

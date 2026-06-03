@@ -57,6 +57,8 @@ const en = {
     continueToSummary: "Continue to summary",
     changeDate: "Change date",
     selectedDay: "Selected day",
+    welcomeBack: "Booking as",
+    backToAccount: "Back to my bookings",
   },
   account: {
     welcome: "Welcome",
@@ -163,6 +165,8 @@ const el: Translations = {
     continueToSummary: "Συνέχεια στην επιβεβαίωση",
     changeDate: "Αλλαγή ημερομηνίας",
     selectedDay: "Επιλεγμένη ημέρα",
+    welcomeBack: "Κράτηση ως",
+    backToAccount: "Πίσω στις κρατήσεις μου",
   },
   account: {
     welcome: "Καλώς ήρθατε",
