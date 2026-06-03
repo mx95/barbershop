@@ -84,27 +84,36 @@ export function buildGoogleCalendarUrl(event: CalendarEvent): string {
   return url.toString();
 }
 
-export function buildIcsContent(event: CalendarEvent): string {
-  const uid = `${Date.now()}@thetempleofmen.com`;
+export function buildIcsContent(
+  event: CalendarEvent,
+  options?: { uid?: string; method?: "PUBLISH" | "REQUEST" | "CANCEL" }
+): string {
+  const uid = options?.uid ?? `${Date.now()}@thetempleofmen.com`;
+  const method = options?.method ?? "PUBLISH";
   const stamp = formatIcsDate(new Date());
+
+  const escape = (s: string) => s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,");
 
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//The Temple Of Men//Booking//EN",
     "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+    `METHOD:${method}`,
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTAMP:${stamp}`,
     `DTSTART:${formatIcsDate(event.startsAt)}`,
     `DTEND:${formatIcsDate(event.endsAt)}`,
-    `SUMMARY:${event.title.replace(/\n/g, "\\n")}`,
-    `DESCRIPTION:${event.description.replace(/\n/g, "\\n")}`,
-    `LOCATION:${event.location.replace(/\n/g, "\\n")}`,
+    `SUMMARY:${escape(event.title)}`,
+    `DESCRIPTION:${escape(event.description)}`,
+    `LOCATION:${escape(event.location)}`,
+    method === "CANCEL" ? "STATUS:CANCELLED" : null,
     "END:VEVENT",
     "END:VCALENDAR",
-  ].join("\r\n");
+  ]
+    .filter((line): line is string => line != null)
+    .join("\r\n");
 }
 
 export function downloadIcsFile(content: string, filename: string) {

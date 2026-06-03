@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { format, addMinutes } from "date-fns";
 import { BARBERS, SERVICES } from "@/lib/constants";
+import { syncAppointmentToSharedCalendar } from "@/lib/calendar-sync";
 import {
   findAppointmentById,
   readAppointments,
@@ -41,6 +42,11 @@ export async function PATCH(
 
     if (body.action === "cancel") {
       const appointment = await updateAppointmentById(id, { status: "cancelled" });
+      if (appointment) {
+        syncAppointmentToSharedCalendar(appointment, "cancel").catch((err) => {
+          console.error("[calendar-sync]", err);
+        });
+      }
       return NextResponse.json({ appointment });
     }
 
@@ -85,6 +91,12 @@ export async function PATCH(
         barber_id: barber.id,
         barber_name: barber.name,
       });
+
+      if (appointment) {
+        syncAppointmentToSharedCalendar(appointment, "reschedule").catch((err) => {
+          console.error("[calendar-sync]", err);
+        });
+      }
 
       return NextResponse.json({ appointment });
     }

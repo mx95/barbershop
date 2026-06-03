@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { format } from "date-fns";
 import { BARBERS, SERVICES } from "@/lib/constants";
+import { syncAppointmentToSharedCalendar } from "@/lib/calendar-sync";
 import {
   createAppointment,
   findAppointmentsByIds,
@@ -53,6 +54,10 @@ export async function POST(request: Request) {
       starts_at: startsAt,
       ends_at: endsAt,
       notes: notes || null,
+    });
+
+    syncAppointmentToSharedCalendar(appointment, "create").catch((err) => {
+      console.error("[calendar-sync]", err);
     });
 
     return NextResponse.json({ appointment });

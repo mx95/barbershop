@@ -7,6 +7,8 @@ export const SITE = {
   phone: "+35724044969",
   phoneDisplay: "24 044969",
   email: "onlyclassicnoshit@hotmail.com",
+  /** Default inbox for shared booking calendar (override with BOOKING_CALENDAR_EMAIL) */
+  bookingCalendarEmail: "onlyclassicnoshit@hotmail.com",
   address: "Mixalaki Vraximi 37, Xylophagou, Larnaka 7520",
   mapQuery: "Mixalaki+Vraximi+37+Xylophagou+Larnaka+7520",
   instagram: "thetempleofmen_barbershop",
