@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Scissors, Award, Users, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SITE } from "@/lib/constants";
+import { Reveal, StaggerItem, StaggerReveal } from "@/components/motion/reveal";
 
 const features = [
   {
@@ -15,7 +16,8 @@ const features = [
   {
     icon: Award,
     title: "Premium Products",
-    description: "Only the finest grooming products — Reuzel pomades, premium oils, and hot towel rituals.",
+    description:
+      "Reuzel, LaVish, Vkings, MUC, KEUNE, and more — plus hot towel rituals and expert recommendations.",
   },
   {
     icon: Users,
@@ -33,7 +35,7 @@ export function AboutPreview() {
   return (
     <section className="relative overflow-hidden">
       <div className="grid lg:grid-cols-2">
-        <div className="relative min-h-[280px] sm:min-h-[400px] lg:min-h-[600px]">
+        <Reveal className="relative min-h-[280px] sm:min-h-[400px] lg:min-h-[600px]">
           <Image
             src="/images/shop-wall.jpg"
             alt={`${SITE.name} — vintage sign wall`}
@@ -42,10 +44,10 @@ export function AboutPreview() {
             sizes="(max-width: 1024px) 100vw, 50vw"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent to-background lg:bg-gradient-to-r lg:from-transparent lg:to-background" />
-        </div>
+        </Reveal>
 
         <div className="flex items-center section-padding lg:pl-16">
-          <div>
+          <Reveal>
             <p className="mb-3 text-sm tracking-[0.3em] text-gold uppercase">Our Story</p>
             <h2 className="font-heading text-3xl font-light sm:text-4xl lg:text-5xl">
               {SITE.tagline}
@@ -64,22 +66,24 @@ export function AboutPreview() {
               .
             </p>
 
-            <div className="mt-10 grid gap-6 sm:grid-cols-2">
+            <StaggerReveal className="mt-10 grid gap-6 sm:grid-cols-2" stagger={0.08}>
               {features.map((feature) => (
-                <div key={feature.title} className="flex gap-3">
-                  <feature.icon className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
-                  <div>
-                    <h3 className="text-sm font-medium">{feature.title}</h3>
-                    <p className="mt-1 text-xs text-muted-foreground">{feature.description}</p>
+                <StaggerItem key={feature.title}>
+                  <div className="flex gap-3">
+                    <feature.icon className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
+                    <div>
+                      <h3 className="text-sm font-medium">{feature.title}</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">{feature.description}</p>
+                    </div>
                   </div>
-                </div>
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerReveal>
 
             <Button variant="outline" asChild className="mt-10 border-gold/30 hover:bg-gold/10">
               <Link href="/about">Discover Our Story</Link>
             </Button>
-          </div>
+          </Reveal>
         </div>
       </div>
     </section>

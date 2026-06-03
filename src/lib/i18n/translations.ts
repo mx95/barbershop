@@ -92,6 +92,17 @@ const en = {
     saving: "Saving...",
     rescheduleSuccess: "Appointment rescheduled",
   },
+  products: {
+    eyebrow: "In the Shop",
+    title: "Reuzel Pomades",
+    subtitle:
+      "Premium styling products from Reuzel — available to pick up when you visit The Temple Of Men.",
+    availableAtShop: "Available at the barbershop",
+    partnerNote: "Ask your barber which pomade suits your hair and style.",
+    swipeHint: "Swipe to see more products",
+    scrollPrev: "Previous product",
+    scrollNext: "Next product",
+  },
   services: {
     haircut: "Haircut",
     "haircut-beard-trimming": "Haircut & Beard Trimming",
@@ -200,6 +211,17 @@ const el: Translations = {
     saving: "Αποθήκευση...",
     rescheduleSuccess: "Το ραντεβού άλλαξε",
   },
+  products: {
+    eyebrow: "Στο κατάστημα",
+    title: "Reuzel Pomades",
+    subtitle:
+      "Premium προϊόντα styling από τη Reuzel — διαθέσιμα όταν επισκέπτεστε το The Temple Of Men.",
+    availableAtShop: "Διαθέσιμο στο μπαρμπέρικο",
+    partnerNote: "Ρωτήστε τον κουρέα σας ποιο pomade ταιριάζει στο μαλλί και το στυλ σας.",
+    swipeHint: "Σύρετε για περισσότερα προϊόντα",
+    scrollPrev: "Προηγούμενο προϊόν",
+    scrollNext: "Επόμενο προϊόν",
+  },
   services: {
     haircut: "Κούρεμα",
     "haircut-beard-trimming": "Κούρεμα & Γένια",
@@ -213,7 +235,7 @@ const el: Translations = {
     "kids-haircut": "Παιδικό κούρεμα (κάτω των 12)",
     "father-1-son": "Πατέρας + 1 γιος",
     "father-2-sons": "Πατέρας + 2 γιοι",
-  },
+  } as Record<string, string>,
 };
 
 export const translations: Record<Locale, Translations> = { en, el };

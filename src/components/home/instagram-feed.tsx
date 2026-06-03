@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Camera } from "lucide-react";
 import { SITE } from "@/lib/constants";
+import { Reveal } from "@/components/motion/reveal";
 import type { InstagramPost } from "@/lib/types";
 
 const fallbackPosts = [
@@ -30,7 +31,7 @@ export function InstagramFeed() {
   return (
     <section className="section-padding">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-12 text-center">
+        <Reveal className="mb-12 text-center">
           <p className="mb-3 text-sm tracking-[0.3em] text-gold uppercase">Social</p>
           <h2 className="font-heading text-3xl font-light sm:text-4xl lg:text-5xl">Follow the Craft</h2>
           <a
@@ -42,7 +43,7 @@ export function InstagramFeed() {
             <Camera className="h-4 w-4" />
             @{SITE.instagram}
           </a>
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
           {posts.map((post) => (

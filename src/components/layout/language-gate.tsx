@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LOCALE_KEY } from "@/lib/i18n/translations";
 import { useLanguage } from "@/lib/i18n/language-provider";
+import { useIntroMotion } from "@/lib/motion/intro-context";
 import { useMounted } from "@/hooks/use-mounted";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import { SITE } from "@/lib/constants";
 
 export function LanguageGate() {
   const { setLocale, t, mounted: localeReady } = useLanguage();
+  const { markIntroReady } = useIntroMotion();
   const mounted = useMounted();
   const [open, setOpen] = useState(false);
 
@@ -29,6 +31,7 @@ export function LanguageGate() {
   function choose(locale: "en" | "el") {
     setLocale(locale);
     setOpen(false);
+    markIntroReady();
   }
 
   if (!mounted) return null;

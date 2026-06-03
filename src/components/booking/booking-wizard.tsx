@@ -338,12 +338,13 @@ function BookingWizardInner() {
             {showBackButton && (
               <Button
                 type="button"
-                variant="ghost"
-                size="sm"
+                variant="outline"
                 onClick={goBack}
-                className="mb-4 -ml-1 gap-1 text-muted-foreground hover:text-gold"
+                className="mb-5 h-11 w-full gap-2 border-gold/40 bg-gold/10 text-base font-semibold text-gold shadow-sm hover:border-gold/60 hover:bg-gold/20 hover:text-gold sm:mb-6 sm:w-auto sm:min-w-[10rem] sm:px-5"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gold/50 bg-gold/15">
+                  <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
+                </span>
                 {step === 0 && isLoggedIn ? t.booking.backToAccount : t.booking.back}
               </Button>
             )}

@@ -14,6 +14,13 @@ interface LanguageContextValue {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
+function resolveTranslations(locale: Locale): Translations {
+  const selected = translations[locale];
+  if (!selected) return translations.en;
+  if (selected.products) return selected;
+  return { ...translations.en, ...selected, products: translations.en.products };
+}
+
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("en");
   const [mounted, setMounted] = useState(false);
@@ -32,10 +39,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = next;
   }, []);
 
-  const t = translations[locale];
+  const t = resolveTranslations(locale);
 
   const serviceName = useCallback(
-    (serviceId: string, fallback: string) => t.services[serviceId] ?? fallback,
+    (serviceId: string, fallback: string) =>
+      (t.services as Record<string, string>)[serviceId] ?? fallback,
     [t]
   );
 

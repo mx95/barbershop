@@ -1,0 +1,7 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <rect width="240" height="240" fill="#0a0a0c"/>
+  <ellipse cx="120" cy="200" rx="52" ry="10" fill="rgba(201,168,76,0.12)"/>
+  <rect x="88" y="48" width="64" height="128" rx="10" fill="#141418" stroke="rgba(201,168,76,0.35)" stroke-width="1.5"/>
+  <rect x="96" y="56" width="48" height="36" rx="4" fill="rgba(201,168,76,0.15)"/>
+  <text x="120" y="118" text-anchor="middle" fill="#c9a84c" font-family="Georgia, serif" font-size="14" letter-spacing="0.14em">KEUNE</text>
+</svg>

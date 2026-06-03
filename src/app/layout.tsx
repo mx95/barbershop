@@ -5,6 +5,7 @@ import { Footer } from "@/components/layout/footer";
 import { Toaster } from "@/components/ui/sonner";
 import { LanguageProvider } from "@/lib/i18n/language-provider";
 import { LanguageGate } from "@/components/layout/language-gate";
+import { IntroMotionProvider, IntroMotionController } from "@/lib/motion/intro-context";
 import { SITE } from "@/lib/constants";
 import "./globals.css";
 
@@ -61,13 +62,19 @@ export default function RootLayout({
       <head>
         <link rel="stylesheet" href="/fallback.css" precedence="default" />
       </head>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body
+        suppressHydrationWarning
+        className="min-h-screen bg-background font-sans antialiased"
+      >
         <LanguageProvider>
-          <LanguageGate />
-          <Navbar />
-          <main className="min-h-screen pt-16 sm:pt-20">{children}</main>
-          <Footer />
-          <Toaster theme="dark" position="top-right" />
+          <IntroMotionProvider>
+            <IntroMotionController />
+            <LanguageGate />
+            <Navbar />
+            <main className="min-h-screen pt-16 sm:pt-20">{children}</main>
+            <Footer />
+            <Toaster theme="dark" position="top-right" />
+          </IntroMotionProvider>
         </LanguageProvider>
       </body>
     </html>

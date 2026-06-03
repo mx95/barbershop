@@ -25,6 +25,18 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    const fallbackCss = [
+      {
+        source: "/fallback.css",
+        headers: [{ key: "Content-Type", value: "text/css; charset=utf-8" }],
+      },
+    ];
+
+    // Long-lived cache only in production — in dev it pins stale JS after code changes.
+    if (process.env.NODE_ENV !== "production") {
+      return fallbackCss;
+    }
+
     return [
       {
         source: "/_next/static/:path*",
@@ -33,10 +45,7 @@ const nextConfig: NextConfig = {
           { key: "Access-Control-Allow-Origin", value: "*" },
         ],
       },
-      {
-        source: "/fallback.css",
-        headers: [{ key: "Content-Type", value: "text/css; charset=utf-8" }],
-      },
+      ...fallbackCss,
     ];
   },
 };
