@@ -55,6 +55,8 @@ const en = {
     continueSaved: "Use saved details",
     continueSavedHint: "Prefill from your last booking on this device.",
     continueToSummary: "Continue to summary",
+    changeDate: "Change date",
+    selectedDay: "Selected day",
   },
   account: {
     welcome: "Welcome",
@@ -159,6 +161,8 @@ const el: Translations = {
     continueSaved: "Χρήση αποθηκευμένων στοιχείων",
     continueSavedHint: "Συμπλήρωση από την τελευταία κράτηση σε αυτή τη συσκευή.",
     continueToSummary: "Συνέχεια στην επιβεβαίωση",
+    changeDate: "Αλλαγή ημερομηνίας",
+    selectedDay: "Επιλεγμένη ημέρα",
   },
   account: {
     welcome: "Καλώς ήρθατε",

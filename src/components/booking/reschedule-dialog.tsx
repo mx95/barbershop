@@ -101,8 +101,8 @@ export function RescheduleDialog({
         <DialogHeader>
           <DialogTitle className="font-heading text-xl">{t.account.reschedule}</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div>
+        <div className="flex flex-col gap-8">
+          <div className="relative z-10 w-full">
             <Label className="mb-3 flex items-center gap-2">
               <CalendarIcon className="h-4 w-4 text-gold" /> {t.booking.selectDate}
             </Label>
@@ -115,10 +115,16 @@ export function RescheduleDialog({
                 d < new Date(new Date().setHours(0, 0, 0, 0)) ||
                 !isBarberAvailableDay(d, appointment.barber_id)
               }
-              className="glass-card rounded-xl border-gold/20 p-3"
+              classNames={{
+                root: "w-full max-w-none",
+                month: "relative w-full flex flex-col gap-3 pt-10",
+                nav: "absolute inset-x-0 top-0 flex w-full items-center justify-between",
+                month_grid: "w-full",
+              }}
+              className="glass-card w-full rounded-xl border-gold/20 p-3"
             />
           </div>
-          <div>
+          <div className="relative w-full border-t border-gold/15 pt-6">
             <Label className="mb-3 flex items-center gap-2">
               <Clock className="h-4 w-4 text-gold" /> {t.booking.selectTime}
             </Label>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -56,6 +56,18 @@ function BookingWizardInner() {
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [completedBooking, setCompletedBooking] = useState<CompletedBooking | null>(null);
   const [today, setToday] = useState<Date | null>(null);
+  const [compactDateTime, setCompactDateTime] = useState(false);
+  const [dateTimePhase, setDateTimePhase] = useState<"date" | "time">("date");
+  const timeSectionRef = useRef<HTMLDivElement>(null);
+
+  const calendarClassNames = {
+    root: "w-full max-w-none",
+    months: "relative w-full",
+    month: "relative w-full flex flex-col gap-3 pt-10",
+    month_caption: "flex h-9 w-full items-center justify-center",
+    nav: "absolute inset-x-0 top-0 flex w-full items-center justify-between",
+    month_grid: "w-full",
+  } as const;
 
   const service = SERVICES.find((s) => s.id === serviceId);
   const barber = BARBERS.find((b) => b.id === barberId);
@@ -64,6 +76,18 @@ function BookingWizardInner() {
   useEffect(() => {
     setToday(startOfDay(new Date()));
   }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setCompactDateTime(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (step !== 2) setDateTimePhase("date");
+  }, [step]);
 
   useEffect(() => {
     const saved = loadSavedCustomer();
@@ -92,8 +116,20 @@ function BookingWizardInner() {
 
   useEffect(() => {
     setTime("");
+    setDateTimePhase("date");
     setDate((current) => (current && !isBarberAvailableDay(current, barberId) ? undefined : current));
   }, [barberId]);
+
+  function selectDate(selected: Date | undefined) {
+    setDate(selected);
+    if (!selected) return;
+    if (compactDateTime) {
+      setDateTimePhase("time");
+      requestAnimationFrame(() => {
+        timeSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -427,52 +463,83 @@ function BookingWizardInner() {
               )}
 
               {step === 2 && (
-                <div className="grid gap-6 sm:gap-8 lg:grid-cols-2">
-                  <div>
-                    <Label className="mb-3 flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4 text-gold" /> {t.booking.selectDate}
-                    </Label>
-                    {mounted && today ? (
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        weekStartsOn={1}
-                        disabled={(d) => d < today || !isBarberAvailableDay(d, barberId)}
-                        className="glass-card mx-auto w-full max-w-sm rounded-xl border-gold/20 p-2 sm:p-3"
-                      />
-                    ) : (
-                      <div className="glass-card mx-auto flex h-64 max-w-sm items-center justify-center rounded-xl border-gold/20">
-                        <span className="text-sm text-muted-foreground">...</span>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <Label className="mb-3 flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gold" /> {t.booking.selectTime}
-                    </Label>
-                    {!date ? (
-                      <p className="text-sm text-muted-foreground">{t.booking.selectDateFirst}</p>
-                    ) : timeSlots.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">{t.booking.noSlots}</p>
-                    ) : (
-                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                        {timeSlots.map((slot) => (
+                <div className="flex flex-col gap-8 xl:grid xl:grid-cols-2 xl:gap-8">
+                  {(compactDateTime ? dateTimePhase === "date" : true) && (
+                    <div className="relative z-10 w-full shrink-0">
+                      <Label className="mb-3 flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-gold" /> {t.booking.selectDate}
+                      </Label>
+                      {mounted && today ? (
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={selectDate}
+                          weekStartsOn={1}
+                          disabled={(d) => d < today || !isBarberAvailableDay(d, barberId)}
+                          classNames={calendarClassNames}
+                          className="glass-card mx-auto w-full max-w-full rounded-xl border-gold/20 p-2 sm:p-3"
+                        />
+                      ) : (
+                        <div className="glass-card mx-auto flex h-64 w-full max-w-full items-center justify-center rounded-xl border-gold/20">
+                          <span className="text-sm text-muted-foreground">...</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(compactDateTime ? dateTimePhase === "time" : true) && (
+                    <div
+                      ref={timeSectionRef}
+                      className={cn(
+                        "relative w-full",
+                        compactDateTime ? "z-0" : "z-0 xl:border-l xl:border-gold/10 xl:pl-8"
+                      )}
+                    >
+                      {compactDateTime && date && (
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-gold/15 pb-4">
+                          <p className="text-sm text-muted-foreground">
+                            {t.booking.selectedDay}:{" "}
+                            <span className="font-medium text-foreground">
+                              {format(date, "EEEE, d MMM")}
+                            </span>
+                          </p>
                           <Button
-                            key={slot}
-                            variant={time === slot ? "default" : "outline"}
+                            type="button"
+                            variant="ghost"
                             size="sm"
-                            className={cn(
-                              time === slot ? "gold-gradient border-0" : "border-gold/20 hover:bg-gold/10"
-                            )}
-                            onClick={() => selectTimeSlot(slot)}
+                            className="h-8 text-gold hover:bg-gold/10"
+                            onClick={() => setDateTimePhase("date")}
                           >
-                            {slot}
+                            {t.booking.changeDate}
                           </Button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                        </div>
+                      )}
+                      <Label className="mb-3 flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gold" /> {t.booking.selectTime}
+                      </Label>
+                      {!date ? (
+                        <p className="text-sm text-muted-foreground">{t.booking.selectDateFirst}</p>
+                      ) : timeSlots.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">{t.booking.noSlots}</p>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                          {timeSlots.map((slot) => (
+                            <Button
+                              key={slot}
+                              variant={time === slot ? "default" : "outline"}
+                              size="sm"
+                              className={cn(
+                                time === slot ? "gold-gradient border-0" : "border-gold/20 hover:bg-gold/10"
+                              )}
+                              onClick={() => selectTimeSlot(slot)}
+                            >
+                              {slot}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
