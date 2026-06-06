@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { format, addMinutes } from "date-fns";
+import { format, addMinutes, startOfDay, startOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language-provider";
@@ -16,7 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   generateTimeSlots,
+  getBookingMonthRange,
   isBarberAvailableDay,
+  isWithinBookingWindow,
+  type BookedRange,
 } from "@/lib/booking-utils";
 import type { StoredAppointment } from "@/lib/store/appointments";
 import { cn } from "@/lib/utils";
@@ -35,14 +38,17 @@ export function RescheduleDialog({
   const { t } = useLanguage();
   const [date, setDate] = useState<Date | undefined>();
   const [time, setTime] = useState("");
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [bookedRanges, setBookedRanges] = useState<BookedRange[]>([]);
   const [loading, setLoading] = useState(false);
+  const [today] = useState(() => startOfDay(new Date()));
+  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
 
   useEffect(() => {
     if (open) {
       const start = new Date(appointment.starts_at);
       setDate(start);
       setTime(format(start, "HH:mm"));
+      setCalendarMonth(startOfMonth(start));
     }
   }, [open, appointment.starts_at]);
 
@@ -54,15 +60,20 @@ export function RescheduleDialog({
         `/api/appointments?date=${format(date!, "yyyy-MM-dd")}&barberId=${appointment.barber_id}`
       );
       const data = await res.json();
-      const currentTime = format(new Date(appointment.starts_at), "HH:mm");
-      const slots: string[] = data.bookedSlots ?? [];
-      setBookedSlots(slots.filter((s) => s !== currentTime));
+      const currentStart = format(new Date(appointment.starts_at), "HH:mm");
+      const currentEnd = format(new Date(appointment.ends_at), "HH:mm");
+      const ranges: BookedRange[] = data.bookedRanges ?? [];
+      setBookedRanges(
+        ranges.filter((r) => !(r.start === currentStart && r.end === currentEnd))
+      );
     }
     fetchSlots();
   }, [date, appointment.barber_id, appointment.starts_at]);
 
   const timeSlots =
-    date ? generateTimeSlots(date, appointment.service_duration, bookedSlots) : [];
+    date
+      ? generateTimeSlots(date, appointment.service_duration, appointment.barber_id, bookedRanges)
+      : [];
 
   async function handleSave() {
     if (!date || !time) return;
@@ -110,15 +121,21 @@ export function RescheduleDialog({
               mode="single"
               selected={date}
               onSelect={setDate}
+              month={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              startMonth={getBookingMonthRange(today).startMonth}
+              endMonth={getBookingMonthRange(today).endMonth}
               weekStartsOn={1}
               disabled={(d) =>
-                d < new Date(new Date().setHours(0, 0, 0, 0)) ||
+                !isWithinBookingWindow(d, today) ||
                 !isBarberAvailableDay(d, appointment.barber_id)
               }
               classNames={{
                 root: "w-full max-w-none",
                 month: "relative w-full flex flex-col gap-3 pt-10",
-                nav: "absolute inset-x-0 top-0 flex w-full items-center justify-between",
+                nav: "absolute inset-x-0 top-0 z-20 flex w-full items-center justify-between",
+                button_previous: "relative z-20",
+                button_next: "relative z-20",
                 month_grid: "w-full",
               }}
               className="glass-card w-full rounded-xl border-gold/20 p-3"
@@ -133,13 +150,13 @@ export function RescheduleDialog({
             ) : timeSlots.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t.booking.noSlots}</p>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
                 {timeSlots.map((slot) => (
                   <Button
                     key={slot}
                     variant={time === slot ? "default" : "outline"}
-                    size="sm"
                     className={cn(
+                      "h-12 text-base font-semibold tabular-nums sm:h-11",
                       time === slot ? "gold-gradient border-0" : "border-gold/20 hover:bg-gold/10"
                     )}
                     onClick={() => setTime(slot)}

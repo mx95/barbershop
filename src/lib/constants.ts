@@ -15,6 +15,8 @@ export const SITE = {
   instagramUrl: "https://www.instagram.com/thetempleofmen_barbershop/",
   established: 2024,
   bookingHours: { open: 9, close: 19 },
+  /** How far ahead customers can book (calendar + API). */
+  bookingAdvanceMonths: 3,
   setmoreUrl: "https://thetempleofmen.setmore.com",
 } as const;
 
@@ -109,7 +111,7 @@ export const SERVICES = [
     id: "head-shave-beard-trim",
     name: "Head Shave & Beard Trim",
     description: "Head shave paired with a precise beard trim.",
-    duration: 35,
+    duration: 40,
     price: 16,
     category: "Packages",
     popular: false,
@@ -152,26 +154,36 @@ export const SERVICES = [
   },
 ] as const;
 
+/** Shared shop hours — each barber has their own calendar; one barber’s booking does not block the other. */
+export const BARBER_SCHEDULE = {
+  days: [1, 2, 3, 5, 6] as const,
+  open: SITE.bookingHours.open,
+  close: SITE.bookingHours.close,
+  slotMinutes: 5,
+} as const;
+
+export const BARBER_SCHEDULE_LABEL = "Mon–Wed, Fri & Sat · 9:00 – 19:00";
+
 export const BARBERS = [
   {
     id: "spyros",
     name: "Spyros",
     title: "Owner",
     bio: "Classic cuts, fades, and hot towel shaves.",
-    scheduleLabel: "Mon–Wed, Fri & Sat",
-    closedDays: [] as const,
-    image: "/images/shop-wall.jpg",
-    imageFocus: "50% 30%",
+    scheduleLabel: BARBER_SCHEDULE_LABEL,
+    schedule: BARBER_SCHEDULE,
+    image: "/images/barbers/spyros.jpg",
+    imageFocus: "50% 35%",
   },
   {
     id: "lambros",
     name: "Lambros",
     title: "Barber",
     bio: "Beard work and traditional barbering with precision.",
-    scheduleLabel: "Mon–Wed, Fri & Sat",
-    closedDays: [] as const,
-    image: "/images/shop-wall.jpg",
-    imageFocus: "50% 70%",
+    scheduleLabel: BARBER_SCHEDULE_LABEL,
+    schedule: BARBER_SCHEDULE,
+    image: "/images/barbers/lambros.jpg",
+    imageFocus: "50% 35%",
   },
 ] as const;
 

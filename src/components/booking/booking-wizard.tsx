@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { format, addMinutes, startOfDay } from "date-fns";
+import { format, addMinutes, startOfDay, startOfMonth } from "date-fns";
 import { Calendar as CalendarIcon, Clock, Check, ChevronLeft, Scissors, User } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/navbar";
@@ -17,7 +17,16 @@ import { Label } from "@/components/ui/label";
 import { PriceDisplay } from "@/components/ui/price-display";
 import { AddToCalendar } from "@/components/booking/add-to-calendar";
 import { SERVICES, BARBERS, SITE } from "@/lib/constants";
-import { generateTimeSlots, formatPrice, formatDuration, isBarberAvailableDay, type CalendarEvent } from "@/lib/booking-utils";
+import {
+  generateTimeSlots,
+  formatPrice,
+  formatDuration,
+  getBookingMonthRange,
+  isBarberAvailableDay,
+  isWithinBookingWindow,
+  type BookedRange,
+  type CalendarEvent,
+} from "@/lib/booking-utils";
 import { loadSavedCustomer, saveCustomer, saveBookingId, type SavedCustomer } from "@/lib/customer-storage";
 import { useLanguage } from "@/lib/i18n/language-provider";
 import { useMounted } from "@/hooks/use-mounted";
@@ -54,9 +63,10 @@ function BookingWizardInner() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [bookedRanges, setBookedRanges] = useState<BookedRange[]>([]);
   const [completedBooking, setCompletedBooking] = useState<CompletedBooking | null>(null);
   const [today, setToday] = useState<Date | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState<Date | null>(null);
   const [compactDateTime, setCompactDateTime] = useState(false);
   const [dateTimePhase, setDateTimePhase] = useState<"date" | "time">("date");
   const timeSectionRef = useRef<HTMLDivElement>(null);
@@ -66,17 +76,24 @@ function BookingWizardInner() {
     months: "relative w-full",
     month: "relative w-full flex flex-col gap-3 pt-10",
     month_caption: "flex h-9 w-full items-center justify-center",
-    nav: "absolute inset-x-0 top-0 flex w-full items-center justify-between",
+    nav: "absolute inset-x-0 top-0 z-20 flex w-full items-center justify-between",
+    button_previous: "relative z-20",
+    button_next: "relative z-20",
     month_grid: "w-full",
   } as const;
 
   const service = SERVICES.find((s) => s.id === serviceId);
   const barber = BARBERS.find((b) => b.id === barberId);
-  const timeSlots = date && service ? generateTimeSlots(date, service.duration, bookedSlots) : [];
+  const timeSlots =
+    date && service && barber
+      ? generateTimeSlots(date, service.duration, barber.id, bookedRanges)
+      : [];
   const isLoggedIn = !!(savedCustomer?.name?.trim() && savedCustomer?.phone?.trim());
 
   useEffect(() => {
-    setToday(startOfDay(new Date()));
+    const now = startOfDay(new Date());
+    setToday(now);
+    setCalendarMonth(startOfMonth(now));
   }, []);
 
   useEffect(() => {
@@ -113,7 +130,7 @@ function BookingWizardInner() {
           `/api/appointments?date=${format(date!, "yyyy-MM-dd")}&barberId=${barber!.id}`
         );
         const data = await res.json();
-        if (data.bookedSlots) setBookedSlots(data.bookedSlots);
+        if (data.bookedRanges) setBookedRanges(data.bookedRanges);
       } catch {
         // ignore fetch errors
       }
@@ -123,6 +140,7 @@ function BookingWizardInner() {
 
   useEffect(() => {
     setTime("");
+    setBookedRanges([]);
     setDateTimePhase("date");
     setDate((current) => (current && !isBarberAvailableDay(current, barberId) ? undefined : current));
   }, [barberId]);
@@ -476,13 +494,20 @@ function BookingWizardInner() {
                       <Label className="mb-3 flex items-center gap-2">
                         <CalendarIcon className="h-4 w-4 text-gold" /> {t.booking.selectDate}
                       </Label>
-                      {mounted && today ? (
+                      {mounted && today && calendarMonth ? (
                         <Calendar
                           mode="single"
                           selected={date}
                           onSelect={selectDate}
+                          month={calendarMonth}
+                          onMonthChange={setCalendarMonth}
+                          startMonth={getBookingMonthRange(today).startMonth}
+                          endMonth={getBookingMonthRange(today).endMonth}
                           weekStartsOn={1}
-                          disabled={(d) => d < today || !isBarberAvailableDay(d, barberId)}
+                          disabled={(d) =>
+                            !isWithinBookingWindow(d, today) ||
+                            !isBarberAvailableDay(d, barberId)
+                          }
                           classNames={calendarClassNames}
                           className="glass-card mx-auto w-full max-w-full rounded-xl border-gold/20 p-2 sm:p-3"
                         />
@@ -529,13 +554,13 @@ function BookingWizardInner() {
                       ) : timeSlots.length === 0 ? (
                         <p className="text-sm text-muted-foreground">{t.booking.noSlots}</p>
                       ) : (
-                        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
                           {timeSlots.map((slot) => (
                             <Button
                               key={slot}
                               variant={time === slot ? "default" : "outline"}
-                              size="sm"
                               className={cn(
+                                "h-12 text-base font-semibold tabular-nums sm:h-11",
                                 time === slot ? "gold-gradient border-0" : "border-gold/20 hover:bg-gold/10"
                               )}
                               onClick={() => selectTimeSlot(slot)}

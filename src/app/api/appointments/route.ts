@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { format } from "date-fns";
 import { BARBERS, SERVICES } from "@/lib/constants";
+import {
+  appointmentsToBookedRanges,
+  hasBookingConflict,
+  isBarberAvailableDay,
+  isWithinBookingWindow,
+} from "@/lib/booking-utils";
 import { syncAppointmentToSharedCalendar } from "@/lib/calendar-sync";
 import {
   createAppointment,
@@ -39,6 +45,26 @@ export async function POST(request: Request) {
     const barber = BARBERS.find((b) => b.id === barberId);
     if (!barber) {
       return NextResponse.json({ error: "Invalid barber" }, { status: 400 });
+    }
+
+    const start = new Date(startsAt);
+    const end = new Date(endsAt);
+    const dateKey = format(start, "yyyy-MM-dd");
+
+    if (!isWithinBookingWindow(start)) {
+      return NextResponse.json(
+        { error: "Bookings are only available up to 3 months in advance" },
+        { status: 400 }
+      );
+    }
+
+    if (!isBarberAvailableDay(start, barber.id)) {
+      return NextResponse.json({ error: "Barber is not available on this day" }, { status: 400 });
+    }
+
+    const appointments = await readAppointments();
+    if (hasBookingConflict(barber.id, dateKey, start, end, appointments)) {
+      return NextResponse.json({ error: "That time slot is no longer available" }, { status: 409 });
     }
 
     const appointment = await createAppointment({
@@ -92,16 +118,9 @@ export async function GET(request: Request) {
       }
 
       const appointments = await readAppointments();
-      const bookedSlots = appointments
-        .filter(
-          (a) =>
-            a.barber_id === barberId &&
-            a.status !== "cancelled" &&
-            format(new Date(a.starts_at), "yyyy-MM-dd") === date
-        )
-        .map((a) => format(new Date(a.starts_at), "HH:mm"));
+      const bookedRanges = appointmentsToBookedRanges(appointments, barberId, date);
 
-      return NextResponse.json({ bookedSlots });
+      return NextResponse.json({ bookedRanges });
     }
 
     const appointments = await readAppointments();

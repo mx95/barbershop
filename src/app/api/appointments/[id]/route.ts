@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { format, addMinutes } from "date-fns";
 import { BARBERS, SERVICES } from "@/lib/constants";
+import {
+  hasBookingConflict,
+  isBarberAvailableDay,
+  isWithinBookingWindow,
+} from "@/lib/booking-utils";
 import { syncAppointmentToSharedCalendar } from "@/lib/calendar-sync";
 import {
   findAppointmentById,
@@ -69,19 +74,20 @@ export async function PATCH(
       const start = new Date(startsAt);
       const end = addMinutes(start, service.duration);
       const dateKey = format(start, "yyyy-MM-dd");
-      const timeKey = format(start, "HH:mm");
+
+      if (!isWithinBookingWindow(start)) {
+        return NextResponse.json(
+          { error: "Bookings are only available up to 3 months in advance" },
+          { status: 400 }
+        );
+      }
+
+      if (!isBarberAvailableDay(start, barber.id)) {
+        return NextResponse.json({ error: "Barber is not available on this day" }, { status: 400 });
+      }
 
       const appointments = await readAppointments();
-      const conflict = appointments.some(
-        (a) =>
-          a.id !== id &&
-          a.barber_id === barber.id &&
-          a.status !== "cancelled" &&
-          format(new Date(a.starts_at), "yyyy-MM-dd") === dateKey &&
-          format(new Date(a.starts_at), "HH:mm") === timeKey
-      );
-
-      if (conflict) {
+      if (hasBookingConflict(barber.id, dateKey, start, end, appointments, id)) {
         return NextResponse.json({ error: "That time slot is no longer available" }, { status: 409 });
       }
 
