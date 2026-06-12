@@ -53,6 +53,7 @@ export default function AccountPage() {
   const { t, serviceName } = useLanguage();
   const [appointments, setAppointments] = useState<StoredAppointment[]>([]);
   const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [customerToken, setCustomerToken] = useState<string | null>(null);
   const [showStaffLogin, setShowStaffLogin] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
@@ -120,6 +121,7 @@ export default function AccountPage() {
     const session = getCustomerSession();
     if (session) {
       setCustomerToken(session.token);
+      setCustomerEmail(session.email);
     }
     setSessionReady(true);
     refreshAppointments(session?.token ?? null);
@@ -142,8 +144,13 @@ export default function AccountPage() {
     router.push("/dashboard");
   }
 
-  function handleLoginSuccess(data: { token: string; name: string }) {
+  function handleLoginSuccess(data: {
+    token: string;
+    name: string;
+    email: string;
+  }) {
     setCustomerToken(data.token);
+    setCustomerEmail(data.email);
     if (data.name) setCustomerName(data.name);
     refreshAppointments(data.token);
   }
@@ -152,6 +159,7 @@ export default function AccountPage() {
     clearCustomerSession();
     setCustomerToken(null);
     setCustomerName("");
+    setCustomerEmail("");
     refreshAppointments(null);
     toast.success(t.account.logoutSuccess);
   }
@@ -191,37 +199,44 @@ export default function AccountPage() {
   return (
     <div className="section-padding">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-10 flex flex-wrap items-start justify-between gap-4">
-          <button
-            type="button"
-            onClick={handleWelcomeUnlock}
-            className="flex-1 cursor-default border-0 bg-transparent p-0 text-left"
-            aria-label={t.account.welcome}
-          >
-            <PageHeader
-              title={`${t.account.welcome}${customerName ? `, ${customerName.split(" ")[0]}` : ""}`}
-              subtitle={customerToken ? t.account.subtitleLoggedIn : t.account.subtitle}
-              className="mb-0"
-            />
-          </button>
-          {customerToken ? (
-            <Button
-              type="button"
-              variant="outline"
-              className="border-gold/30"
-              onClick={handleLogout}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              {t.account.logout}
-            </Button>
-          ) : null}
-        </div>
+        <button
+          type="button"
+          onClick={handleWelcomeUnlock}
+          className="mb-10 w-full cursor-default border-0 bg-transparent p-0 text-left"
+          aria-label={t.account.welcome}
+        >
+          <PageHeader
+            title={`${t.account.welcome}${customerName ? `, ${customerName.split(" ")[0]}` : ""}`}
+            subtitle={customerToken ? t.account.subtitleLoggedIn : t.account.subtitle}
+            className="mb-0"
+          />
+        </button>
 
         {showStaffLogin ? (
           <StaffLoginForm discrete onSuccess={handleStaffLoginSuccess} />
         ) : null}
 
         {!customerToken ? <CustomerLoginForm onSuccess={handleLoginSuccess} /> : null}
+
+        {customerToken ? (
+          <Card className="glass-card mb-6 border-gold/20">
+            <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+              <p className="text-sm text-muted-foreground">
+                {t.account.signedInAs}{" "}
+                <span className="font-medium text-foreground">{customerEmail}</span>
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-gold/30 sm:w-auto"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                {t.account.logout}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <p className="mb-6 text-center text-sm text-muted-foreground">{t.booking.policy}</p>
 

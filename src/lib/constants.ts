@@ -196,7 +196,6 @@ export const LOYALTY_TIERS = [
 export const GALLERY_IMAGES = [
   { src: "/images/shop-wall.jpg", alt: "The Temple Of Men interior — vintage sign wall", span: "col-span-2 row-span-2" },
   { src: "/images/logo.png", alt: "The Temple Of Men logo", span: "col-span-1 row-span-1" },
-  { src: "https://images.unsplash.com/photo-1585747860715-2ba5b469c776?w=800&q=80", alt: "Premium barber chair", span: "col-span-1 row-span-1" },
   { src: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=800&q=80", alt: "Precision fade haircut", span: "col-span-1 row-span-2" },
   { src: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&q=80", alt: "Hot towel shave ritual", span: "col-span-1 row-span-1" },
   { src: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&q=80", alt: "Barber tools and products", span: "col-span-2 row-span-1" },
