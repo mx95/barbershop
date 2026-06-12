@@ -177,8 +177,8 @@ export const BARBERS = [
   },
   {
     id: "lambros",
-    name: "Lambros",
-    title: "Barber",
+    name: "Manager",
+    title: "Manager",
     bio: "Beard work and traditional barbering with precision.",
     scheduleLabel: BARBER_SCHEDULE_LABEL,
     schedule: BARBER_SCHEDULE,

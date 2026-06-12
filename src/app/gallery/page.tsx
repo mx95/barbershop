@@ -1,24 +1,36 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/layout/navbar";
-import { GALLERY_IMAGES } from "@/lib/constants";
+import { useLanguage } from "@/lib/i18n/language-provider";
+import type { GalleryImage } from "@/lib/store/gallery";
 
 export default function GalleryPage() {
+  const { t } = useLanguage();
+  const [images, setImages] = useState<GalleryImage[]>([]);
+
+  useEffect(() => {
+    fetch("/api/gallery", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setImages(d.images ?? []))
+      .catch(() => setImages([]));
+  }, []);
+
   return (
     <div className="section-padding">
       <div className="mx-auto max-w-7xl">
         <PageHeader
-          title="Gallery"
-          subtitle="A glimpse into The Temple — where every detail tells a story."
+          title={t.pages.gallery.title}
+          subtitle={t.pages.gallery.subtitle}
           className="mb-16"
         />
 
         <div className="grid auto-rows-[200px] grid-cols-2 gap-4 md:grid-cols-4 lg:auto-rows-[250px]">
-          {GALLERY_IMAGES.map((image, i) => (
+          {images.map((image, i) => (
             <motion.div
-              key={i}
+              key={image.id}
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}

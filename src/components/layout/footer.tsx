@@ -1,9 +1,21 @@
+"use client";
+
 import Link from "next/link";
 import { Phone, Mail, MapPin, Camera } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo-mark";
-import { SITE, NAV_LINKS, OPENING_HOURS_SUMMARY } from "@/lib/constants";
+import { SITE } from "@/lib/constants";
+import { useLanguage } from "@/lib/i18n/language-provider";
 
 export function Footer() {
+  const { t } = useLanguage();
+
+  const navLinks = [
+    { href: "/", label: t.nav.home },
+    { href: "/gallery", label: t.nav.gallery },
+    { href: "/about", label: t.nav.about },
+    { href: "/contact", label: t.nav.contact },
+  ];
+
   return (
     <footer className="border-t border-gold/10 bg-background">
       <div className="mx-auto max-w-7xl section-padding pb-8">
@@ -16,9 +28,9 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm tracking-[0.2em] text-gold uppercase">Navigate</h3>
+            <h3 className="mb-4 text-sm tracking-[0.2em] text-gold uppercase">{t.footer.navigate}</h3>
             <ul className="space-y-2">
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-muted-foreground hover:text-gold">
                     {link.label}
@@ -27,14 +39,14 @@ export function Footer() {
               ))}
               <li>
                 <Link href="/booking" className="text-sm text-muted-foreground hover:text-gold">
-                  Book Appointment
+                  {t.footer.bookAppointment}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm tracking-[0.2em] text-gold uppercase">Contact</h3>
+            <h3 className="mb-4 text-sm tracking-[0.2em] text-gold uppercase">{t.footer.contact}</h3>
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 text-gold" />
@@ -58,7 +70,7 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 text-sm tracking-[0.2em] text-gold uppercase">Follow</h3>
+            <h3 className="mb-4 text-sm tracking-[0.2em] text-gold uppercase">{t.footer.follow}</h3>
             {SITE.instagram ? (
               <a
                 href={SITE.instagramUrl}
@@ -78,18 +90,15 @@ export function Footer() {
                 {SITE.phoneDisplay}
               </a>
             )}
-            <p className="mt-6 text-xs text-muted-foreground">
-              {OPENING_HOURS_SUMMARY}
-            </p>
           </div>
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-gold/10 pt-8 sm:flex-row">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} {SITE.name}. All rights reserved.
+            © {new Date().getFullYear()} {SITE.name}. {t.footer.rights}
           </p>
           <p className="text-xs text-muted-foreground">
-            Crafted with precision in {SITE.locationLine}, Cyprus
+            {t.footer.crafted} {SITE.locationLine}, Cyprus
           </p>
         </div>
       </div>

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "seed-0",
+    "src": "/images/shop-wall.jpg",
+    "alt": "The Temple Of Men interior — vintage sign wall",
+    "span": "col-span-2 row-span-2",
+    "created_at": "2026-06-11T05:40:59.075Z"
+  },
+  {
+    "id": "seed-1",
+    "src": "/images/logo.png",
+    "alt": "The Temple Of Men logo",
+    "span": "col-span-1 row-span-1",
+    "created_at": "2026-06-11T05:40:59.075Z"
+  },
+  {
+    "id": "seed-3",
+    "src": "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=800&q=80",
+    "alt": "Precision fade haircut",
+    "span": "col-span-1 row-span-2",
+    "created_at": "2026-06-11T05:40:59.075Z"
+  },
+  {
+    "id": "seed-4",
+    "src": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&q=80",
+    "alt": "Hot towel shave ritual",
+    "span": "col-span-1 row-span-1",
+    "created_at": "2026-06-11T05:40:59.075Z"
+  },
+  {
+    "id": "seed-5",
+    "src": "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&q=80",
+    "alt": "Barber tools and products",
+    "span": "col-span-2 row-span-1",
+    "created_at": "2026-06-11T05:40:59.075Z"
+  }
+]

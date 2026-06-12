@@ -60,6 +60,20 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${inter.variable} ${oswald.variable} dark`}>
       <head>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              header [data-nav-desktop] { display: none; }
+              header [data-nav-mobile] { display: flex; align-items: center; gap: 0.25rem; }
+              header [data-nav-links] { gap: 2rem; }
+              header [data-nav-actions] { gap: 0.75rem; }
+              @media (min-width: 1024px) {
+                header [data-nav-desktop] { display: flex; align-items: center; }
+                header [data-nav-mobile] { display: none; }
+              }
+            `,
+          }}
+        />
         <link rel="stylesheet" href="/fallback.css" precedence="default" />
       </head>
       <body

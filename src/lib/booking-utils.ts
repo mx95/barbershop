@@ -49,6 +49,70 @@ export function isBarberAvailableDay(date: Date, barberId: string): boolean {
   return days.includes(date.getDay());
 }
 
+/** Shop-wide: only one booking may overlap 09:00–10:00 per day (not shown in UI). */
+const MORNING_HOUR_START = "09:00";
+const MORNING_HOUR_END = "10:00";
+
+export function overlapsMorningHour(slotStart: Date, slotEnd: Date, date: Date): boolean {
+  const windowStart = timeOnDate(date, MORNING_HOUR_START);
+  const windowEnd = timeOnDate(date, MORNING_HOUR_END);
+  return slotStart < windowEnd && slotEnd > windowStart;
+}
+
+export function hasMorningHourBooking(
+  appointments: readonly {
+    id?: string;
+    starts_at: string;
+    ends_at: string;
+    status: string;
+  }[],
+  dateKey: string,
+  excludeId?: string
+): boolean {
+  return appointments.some((a) => {
+    if (excludeId && a.id === excludeId) return false;
+    if (a.status === "cancelled") return false;
+    if (format(new Date(a.starts_at), "yyyy-MM-dd") !== dateKey) return false;
+    const start = new Date(a.starts_at);
+    const end = new Date(a.ends_at);
+    return overlapsMorningHour(start, end, start);
+  });
+}
+
+export function isBarberOnFullDayOff(
+  date: Date,
+  barberId: string,
+  timeOff: readonly { barber_id: string; date: string; all_day: boolean }[]
+): boolean {
+  const dateKey = format(date, "yyyy-MM-dd");
+  return timeOff.some(
+    (block) => block.barber_id === barberId && block.date === dateKey && block.all_day
+  );
+}
+
+export function timeOffToBookedRanges(
+  timeOff: readonly {
+    barber_id: string;
+    date: string;
+    all_day: boolean;
+    start: string | null;
+    end: string | null;
+  }[],
+  barberId: string,
+  dateKey: string
+): BookedRange[] {
+  return timeOff
+    .filter(
+      (block) =>
+        block.barber_id === barberId &&
+        block.date === dateKey &&
+        !block.all_day &&
+        block.start &&
+        block.end
+    )
+    .map((block) => ({ start: block.start!, end: block.end! }));
+}
+
 export function getBookingWindowStart(today: Date = startOfDay(new Date())): Date {
   return startOfDay(today);
 }
@@ -174,7 +238,8 @@ export function generateTimeSlots(
   date: Date,
   duration: number,
   barberId: string,
-  bookedRanges: BookedRange[] = []
+  bookedRanges: BookedRange[] = [],
+  options?: { morningHourTaken?: boolean }
 ) {
   const { open, close } = getBarberSchedule(barberId);
   const dayStart = setMinutes(setHours(startOfDay(date), open), 0);
@@ -222,7 +287,15 @@ export function generateTimeSlots(
 
   const now = new Date();
   return [...slotSet]
-    .filter((slot) => isAfter(timeOnDate(date, slot), now))
+    .filter((slot) => {
+      const slotStart = timeOnDate(date, slot);
+      if (!isAfter(slotStart, now)) return false;
+      if (options?.morningHourTaken) {
+        const slotEnd = addMinutes(slotStart, duration);
+        if (overlapsMorningHour(slotStart, slotEnd, date)) return false;
+      }
+      return true;
+    })
     .sort((a, b) => a.localeCompare(b));
 }
 

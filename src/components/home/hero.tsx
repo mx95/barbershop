@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 
 import { SITE } from "@/lib/constants";
 
+import { useLanguage } from "@/lib/i18n/language-provider";
 import { Reveal } from "@/components/motion/reveal";
 
 import { HarleyCruise } from "@/components/home/harley-cruise";
@@ -31,6 +32,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 export function Hero() {
 
   const reduceMotion = useReducedMotion();
+  const { t } = useLanguage();
 
   const { introReady, cycle } = useIntroMotion();
 
@@ -111,7 +113,11 @@ export function Hero() {
 
           <p className="mx-auto mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">
 
-            {SITE.description} Call us on{" "}
+            {t.hero.descriptionBefore}{" "}
+
+            <span className="text-foreground">{SITE.name}</span>{" "}
+
+            {t.hero.descriptionAfter} {t.hero.callUs}{" "}
 
             <a href={`tel:${SITE.phone}`} className="text-gold underline-offset-4 hover:underline">
 
@@ -127,6 +133,20 @@ export function Hero() {
 
 
 
+        <Reveal inView={false} delay={0.6} y={20}>
+
+          <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
+
+            {t.hero.hoursLabel}{" "}
+
+            <span className="text-gold">{t.hero.hoursValue}</span>
+
+          </p>
+
+        </Reveal>
+
+
+
         <Reveal
 
           inView={false}
@@ -135,7 +155,7 @@ export function Hero() {
 
           y={20}
 
-          className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4"
+          className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4"
 
         >
 
@@ -143,27 +163,11 @@ export function Hero() {
 
             <Link href="/booking">
 
-              Book Your Session
+              {t.hero.bookSession}
 
               <ArrowRight className="ml-2 h-5 w-5" />
 
             </Link>
-
-          </Button>
-
-          <Button
-
-            size="lg"
-
-            variant="outline"
-
-            asChild
-
-            className="h-12 border-gold/30 text-base hover:bg-gold/10 sm:h-14 sm:px-8"
-
-          >
-
-            <Link href="/services">View Services</Link>
 
           </Button>
 
@@ -179,7 +183,7 @@ export function Hero() {
 
           ))}
 
-          <span className="ml-2 text-sm text-muted-foreground">Premium grooming experience</span>
+          <span className="ml-2 text-sm text-muted-foreground">{t.hero.rating}</span>
 
         </Reveal>
 

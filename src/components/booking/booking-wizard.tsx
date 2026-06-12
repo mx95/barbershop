@@ -49,7 +49,7 @@ function selectionCardClass(selected: boolean) {
 function BookingWizardInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { t, serviceName } = useLanguage();
+  const { t, serviceName, barberText } = useLanguage();
   const mounted = useMounted();
   const [bookingMode, setBookingMode] = useState<BookingMode | null>(null);
   const [savedCustomer, setSavedCustomer] = useState<SavedCustomer | null>(null);
@@ -64,6 +64,8 @@ function BookingWizardInner() {
   const [customerEmail, setCustomerEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [bookedRanges, setBookedRanges] = useState<BookedRange[]>([]);
+  const [morningHourTaken, setMorningHourTaken] = useState(false);
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
   const [completedBooking, setCompletedBooking] = useState<CompletedBooking | null>(null);
   const [today, setToday] = useState<Date | null>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date | null>(null);
@@ -86,7 +88,7 @@ function BookingWizardInner() {
   const barber = BARBERS.find((b) => b.id === barberId);
   const timeSlots =
     date && service && barber
-      ? generateTimeSlots(date, service.duration, barber.id, bookedRanges)
+      ? generateTimeSlots(date, service.duration, barber.id, bookedRanges, { morningHourTaken })
       : [];
   const isLoggedIn = !!(savedCustomer?.name?.trim() && savedCustomer?.phone?.trim());
 
@@ -131,6 +133,7 @@ function BookingWizardInner() {
         );
         const data = await res.json();
         if (data.bookedRanges) setBookedRanges(data.bookedRanges);
+        setMorningHourTaken(Boolean(data.morningHourTaken));
       } catch {
         // ignore fetch errors
       }
@@ -141,8 +144,20 @@ function BookingWizardInner() {
   useEffect(() => {
     setTime("");
     setBookedRanges([]);
+    setMorningHourTaken(false);
     setDateTimePhase("date");
     setDate((current) => (current && !isBarberAvailableDay(current, barberId) ? undefined : current));
+
+    async function loadTimeOff() {
+      try {
+        const res = await fetch(`/api/time-off?barberId=${barberId}`);
+        const data = await res.json();
+        setBlockedDates(data.fullDayDates ?? []);
+      } catch {
+        setBlockedDates([]);
+      }
+    }
+    loadTimeOff();
   }, [barberId]);
 
   function selectDate(selected: Date | undefined) {
@@ -190,13 +205,13 @@ function BookingWizardInner() {
 
   const showBackButton = bookingMode !== null;
 
-  function selectService(id: string) {
-    setServiceId(id);
+  function selectBarber(id: (typeof BARBERS)[number]["id"]) {
+    setBarberId(id);
     setStep(1);
   }
 
-  function selectBarber(id: (typeof BARBERS)[number]["id"]) {
-    setBarberId(id);
+  function selectService(id: string) {
+    setServiceId(id);
     setStep(2);
   }
 
@@ -214,8 +229,14 @@ function BookingWizardInner() {
 
     setLoading(true);
 
+    const email = customerEmail.trim();
     if (!customerName.trim() || !customerPhone.trim()) {
       toast.error(t.booking.nameRequired);
+      setLoading(false);
+      return;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error(t.booking.emailRequired);
       setLoading(false);
       return;
     }
@@ -237,7 +258,7 @@ function BookingWizardInner() {
           notes,
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
-          customerEmail: customerEmail.trim() || undefined,
+          customerEmail: email,
         }),
       });
 
@@ -248,7 +269,7 @@ function BookingWizardInner() {
         saveCustomer({
           name: customerName.trim(),
           phone: customerPhone.trim(),
-          email: customerEmail.trim() || undefined,
+          email,
         });
       }
       saveBookingId(data.appointment.id);
@@ -279,7 +300,13 @@ function BookingWizardInner() {
   }
 
   function canProceedToSummary() {
-    return !!customerName.trim() && !!customerPhone.trim();
+    const email = customerEmail.trim();
+    return (
+      !!customerName.trim() &&
+      !!customerPhone.trim() &&
+      !!email &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    );
   }
 
   function resetWizard() {
@@ -410,7 +437,50 @@ function BookingWizardInner() {
 
             <div key={step} className="animate-in fade-in duration-200">
               {step === 0 && (
-                <div className="grid max-h-[min(45vh,22rem)] gap-2 overflow-y-auto pr-1 sm:max-h-[min(50vh,26rem)] sm:gap-3">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {BARBERS.map((b) => {
+                    const selected = barberId === b.id;
+                    return (
+                      <Card
+                        key={b.id}
+                        className={selectionCardClass(selected)}
+                        onClick={() => selectBarber(b.id)}
+                      >
+                        <CardContent className="flex flex-col items-center gap-4 p-5 text-center sm:items-start sm:text-left">
+                          <div className="flex w-full items-center justify-between">
+                            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-gold/40 bg-black/40">
+                              <Image
+                                src={b.image}
+                                alt={b.name}
+                                fill
+                                className="object-cover"
+                                style={{ objectPosition: b.imageFocus }}
+                                sizes="64px"
+                              />
+                            </div>
+                            {selected && (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold text-[#0a0a0c]">
+                                <Check className="h-4 w-4" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-heading text-lg">{b.name}</h3>
+                            <p className="text-sm text-gold">{barberText(b.id, "title", b.title)}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{barberText(b.id, "bio", b.bio)}</p>
+                            <p className="mt-2 text-xs tracking-wide text-white/70 uppercase">
+                              {t.booking.available} {b.scheduleLabel}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {step === 1 && (
+                <div className="grid gap-2 sm:gap-3">
                   {SERVICES.map((s) => {
                     const selected = serviceId === s.id;
                     return (
@@ -444,49 +514,6 @@ function BookingWizardInner() {
                 </div>
               )}
 
-              {step === 1 && (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {BARBERS.map((b) => {
-                    const selected = barberId === b.id;
-                    return (
-                      <Card
-                        key={b.id}
-                        className={selectionCardClass(selected)}
-                        onClick={() => selectBarber(b.id)}
-                      >
-                        <CardContent className="flex flex-col items-center gap-4 p-5 text-center sm:items-start sm:text-left">
-                          <div className="flex w-full items-center justify-between">
-                            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-gold/40 bg-black/40">
-                              <Image
-                                src={b.image}
-                                alt={b.name}
-                                fill
-                                className="object-cover"
-                                style={{ objectPosition: b.imageFocus }}
-                                sizes="64px"
-                              />
-                            </div>
-                            {selected && (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold text-[#0a0a0c]">
-                                <Check className="h-4 w-4" />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <h3 className="font-heading text-lg">{b.name}</h3>
-                            <p className="text-sm text-gold">{b.title}</p>
-                            <p className="mt-1 text-sm text-muted-foreground">{b.bio}</p>
-                            <p className="mt-2 text-xs tracking-wide text-white/70 uppercase">
-                              {t.booking.available} {b.scheduleLabel}
-                            </p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-
               {step === 2 && (
                 <div className="flex flex-col gap-8 xl:grid xl:grid-cols-2 xl:gap-8">
                   {(compactDateTime ? dateTimePhase === "date" : true) && (
@@ -506,7 +533,8 @@ function BookingWizardInner() {
                           weekStartsOn={1}
                           disabled={(d) =>
                             !isWithinBookingWindow(d, today) ||
-                            !isBarberAvailableDay(d, barberId)
+                            !isBarberAvailableDay(d, barberId) ||
+                            blockedDates.includes(format(d, "yyyy-MM-dd"))
                           }
                           classNames={calendarClassNames}
                           className="glass-card mx-auto w-full max-w-full rounded-xl border-gold/20 p-2 sm:p-3"
@@ -591,7 +619,7 @@ function BookingWizardInner() {
                         id="customerName"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Your full name"
+                        placeholder={t.booking.namePlaceholder}
                         required
                         className="mt-1.5 border-gold/20 bg-white/5"
                       />
@@ -603,21 +631,23 @@ function BookingWizardInner() {
                         type="tel"
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="+357 99 123456"
+                        placeholder={t.booking.phonePlaceholder}
                         required
                         className="mt-1.5 border-gold/20 bg-white/5"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="customerEmail">{t.booking.email}</Label>
+                      <Label htmlFor="customerEmail">{t.booking.email} *</Label>
                       <Input
                         id="customerEmail"
                         type="email"
                         value={customerEmail}
                         onChange={(e) => setCustomerEmail(e.target.value)}
-                        placeholder="you@email.com"
+                        placeholder={t.booking.emailPlaceholder}
+                        required
                         className="mt-1.5 border-gold/20 bg-white/5"
                       />
+                      <p className="mt-1.5 text-xs text-muted-foreground">{t.booking.emailHint}</p>
                     </div>
                     <Button
                       disabled={!canProceedToSummary()}
@@ -638,7 +668,7 @@ function BookingWizardInner() {
                       {[
                         [t.booking.customer, customerName],
                         [t.booking.phone, customerPhone],
-                        ...(customerEmail ? [[t.common.email, customerEmail] as const] : []),
+                        [t.common.email, customerEmail],
                         [t.common.service, serviceName(service.id, service.name)],
                         [t.common.barber, barber.name],
                         [t.common.date, format(date, "EEEE, MMMM d, yyyy")],
@@ -690,7 +720,7 @@ function BookingWizardInner() {
 
 export function BookingWizard() {
   return (
-    <Suspense fallback={<div className="section-padding text-center">Loading...</div>}>
+    <Suspense fallback={<div className="section-padding text-center">...</div>}>
       <BookingWizardInner />
     </Suspense>
   );

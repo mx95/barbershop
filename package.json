@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "start:prod": "npm run build && next start -H 0.0.0.0 -p 3000",
+    "deploy:prod": "npm install && npm run build && pm2 restart ecosystem.config.cjs --update-env",
     "lint": "eslint"
   },
   "dependencies": {

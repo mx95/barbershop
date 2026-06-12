@@ -3,8 +3,10 @@
 import { CalendarPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addEventToCalendar, type CalendarEvent } from "@/lib/booking-utils";
+import { useLanguage } from "@/lib/i18n/language-provider";
 
 export function AddToCalendar({ event }: { event: CalendarEvent }) {
+  const { t } = useLanguage();
   return (
     <Button
       type="button"
@@ -13,7 +15,7 @@ export function AddToCalendar({ event }: { event: CalendarEvent }) {
       onClick={() => addEventToCalendar(event)}
     >
       <CalendarPlus className="mr-2 h-4 w-4" />
-      Add to Calendar
+      {t.addToCalendar}
     </Button>
   );
 }

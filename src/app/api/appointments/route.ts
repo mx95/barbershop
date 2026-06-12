@@ -4,10 +4,15 @@ import { BARBERS, SERVICES } from "@/lib/constants";
 import {
   appointmentsToBookedRanges,
   hasBookingConflict,
+  hasMorningHourBooking,
   isBarberAvailableDay,
+  isBarberOnFullDayOff,
   isWithinBookingWindow,
+  overlapsMorningHour,
+  timeOffToBookedRanges,
 } from "@/lib/booking-utils";
-import { syncAppointmentToSharedCalendar } from "@/lib/calendar-sync";
+import { readTimeOff } from "@/lib/store/time-off";
+import { isValidEmail, syncAppointmentCalendars } from "@/lib/calendar-sync";
 import {
   createAppointment,
   findAppointmentsByIds,
@@ -37,6 +42,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
     }
 
+    if (!email || !isValidEmail(email)) {
+      return NextResponse.json({ error: "A valid email is required for calendar confirmation" }, { status: 400 });
+    }
+
     const service = SERVICES.find((s) => s.id === serviceId);
     if (!service) {
       return NextResponse.json({ error: "Invalid service" }, { status: 400 });
@@ -58,11 +67,19 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isBarberAvailableDay(start, barber.id)) {
+    const timeOff = await readTimeOff();
+    if (!isBarberAvailableDay(start, barber.id) || isBarberOnFullDayOff(start, barber.id, timeOff)) {
       return NextResponse.json({ error: "Barber is not available on this day" }, { status: 400 });
     }
 
     const appointments = await readAppointments();
+    if (
+      overlapsMorningHour(start, end, start) &&
+      hasMorningHourBooking(appointments, dateKey)
+    ) {
+      return NextResponse.json({ error: "That time slot is no longer available" }, { status: 409 });
+    }
+
     if (hasBookingConflict(barber.id, dateKey, start, end, appointments)) {
       return NextResponse.json({ error: "That time slot is no longer available" }, { status: 409 });
     }
@@ -82,7 +99,7 @@ export async function POST(request: Request) {
       notes: notes || null,
     });
 
-    syncAppointmentToSharedCalendar(appointment, "create").catch((err) => {
+    syncAppointmentCalendars(appointment, "create").catch((err) => {
       console.error("[calendar-sync]", err);
     });
 
@@ -117,10 +134,14 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Invalid barber" }, { status: 400 });
       }
 
-      const appointments = await readAppointments();
-      const bookedRanges = appointmentsToBookedRanges(appointments, barberId, date);
+      const [appointments, timeOff] = await Promise.all([readAppointments(), readTimeOff()]);
+      const bookedRanges = [
+        ...appointmentsToBookedRanges(appointments, barberId, date),
+        ...timeOffToBookedRanges(timeOff, barberId, date),
+      ];
+      const morningHourTaken = hasMorningHourBooking(appointments, date);
 
-      return NextResponse.json({ bookedRanges });
+      return NextResponse.json({ bookedRanges, morningHourTaken });
     }
 
     const appointments = await readAppointments();

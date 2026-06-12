@@ -104,6 +104,18 @@ export async function findAppointmentById(id: string) {
   return appointments.find((a) => a.id === id) ?? null;
 }
 
+export async function findAppointmentsByCustomer(phone: string, email: string) {
+  const phoneNorm = phone.replace(/\D/g, "");
+  const emailNorm = email.trim().toLowerCase();
+
+  const appointments = await readAppointments();
+  return appointments.filter((a) => {
+    const apptPhone = a.customer_phone.replace(/\D/g, "");
+    const apptEmail = (a.customer_email ?? "").trim().toLowerCase();
+    return apptPhone === phoneNorm && apptEmail === emailNorm;
+  });
+}
+
 export async function searchAppointments(query: string) {
   const q = query.trim().toLowerCase();
   if (q.length < 2) return [];

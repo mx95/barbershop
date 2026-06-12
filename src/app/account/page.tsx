@@ -1,59 +1,160 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Calendar } from "lucide-react";
+import { Calendar, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/navbar";
+import { CustomerLoginForm } from "@/components/account/customer-login-form";
+import { StaffLoginForm } from "@/components/account/staff-login-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AddToCalendar } from "@/components/booking/add-to-calendar";
 import { RescheduleDialog } from "@/components/booking/reschedule-dialog";
-import { loadBookingIds, loadSavedCustomer } from "@/lib/customer-storage";
+import { loadBookingIds, saveBookingId } from "@/lib/customer-storage";
+import {
+  clearCustomerSession,
+  getCustomerSession,
+} from "@/lib/customer-session";
+import {
+  consumeStaffLoginPrompt,
+  getStaffSession,
+} from "@/lib/staff-session";
 import { canModifyBooking, getModifyDeadline } from "@/lib/booking-utils";
 import { useLanguage } from "@/lib/i18n/language-provider";
 import { SITE } from "@/lib/constants";
 import type { CalendarEvent } from "@/lib/booking-utils";
 import type { StoredAppointment } from "@/lib/store/appointments";
 
+function sortAppointments(list: StoredAppointment[]) {
+  return [...list].sort(
+    (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+  );
+}
+
+function mergeAppointments(...lists: StoredAppointment[][]) {
+  const byId = new Map<string, StoredAppointment>();
+  for (const list of lists) {
+    for (const appt of list) {
+      byId.set(appt.id, appt);
+    }
+  }
+  return sortAppointments([...byId.values()]);
+}
+
+const STAFF_UNLOCK_CLICKS = 5;
+const STAFF_UNLOCK_WINDOW_MS = 2500;
+
 export default function AccountPage() {
+  const router = useRouter();
   const { t, serviceName } = useLanguage();
   const [appointments, setAppointments] = useState<StoredAppointment[]>([]);
   const [customerName, setCustomerName] = useState("");
+  const [customerToken, setCustomerToken] = useState<string | null>(null);
+  const [showStaffLogin, setShowStaffLogin] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [rescheduleAppt, setRescheduleAppt] = useState<StoredAppointment | null>(null);
+  const staffUnlockClicks = useRef(0);
+  const staffUnlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      const saved = loadSavedCustomer();
-      if (saved?.name) setCustomerName(saved.name);
+  const loadLocalAppointments = useCallback(async () => {
+    const ids = loadBookingIds();
+    if (ids.length === 0) return [];
+    const res = await fetch(`/api/appointments?ids=${ids.join(",")}`);
+    const data = await res.json();
+    return (data.appointments ?? []) as StoredAppointment[];
+  }, []);
 
-      const ids = loadBookingIds();
-      if (ids.length === 0) {
-        setLoading(false);
-        return;
-      }
+  const loadLoggedInAppointments = useCallback(async (token: string) => {
+    const res = await fetch("/api/account/appointments", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      if (res.status === 401) clearCustomerSession();
+      return [];
+    }
+    const data = await res.json();
+    const list = (data.appointments ?? []) as StoredAppointment[];
+    for (const appt of list) {
+      saveBookingId(appt.id);
+    }
+    return list;
+  }, []);
 
+  const refreshAppointments = useCallback(
+    async (token: string | null) => {
+      setLoading(true);
       try {
-        const res = await fetch(`/api/appointments?ids=${ids.join(",")}`);
-        const data = await res.json();
-        if (data.appointments) {
-          setAppointments(
-            data.appointments.sort(
-              (a: StoredAppointment, b: StoredAppointment) =>
-                new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
-            )
-          );
+        const local = await loadLocalAppointments();
+        if (token) {
+          const remote = await loadLoggedInAppointments(token);
+          setAppointments(mergeAppointments(remote, local));
+          const name = remote[0]?.customer_name ?? local[0]?.customer_name ?? "";
+          if (name) setCustomerName(name);
+        } else {
+          setAppointments(sortAppointments(local));
+          const name = local[0]?.customer_name ?? "";
+          if (name) setCustomerName(name);
         }
       } finally {
         setLoading(false);
       }
+    },
+    [loadLocalAppointments, loadLoggedInAppointments]
+  );
+
+  useEffect(() => {
+    const staff = getStaffSession();
+    if (staff) {
+      router.replace("/dashboard");
+      return;
     }
-    load();
-  }, []);
+    if (consumeStaffLoginPrompt()) {
+      setShowStaffLogin(true);
+    }
+    const session = getCustomerSession();
+    if (session) {
+      setCustomerToken(session.token);
+    }
+    setSessionReady(true);
+    refreshAppointments(session?.token ?? null);
+  }, [refreshAppointments, router]);
+
+  function handleWelcomeUnlock() {
+    staffUnlockClicks.current += 1;
+    if (staffUnlockTimer.current) clearTimeout(staffUnlockTimer.current);
+    if (staffUnlockClicks.current >= STAFF_UNLOCK_CLICKS) {
+      staffUnlockClicks.current = 0;
+      setShowStaffLogin(true);
+      return;
+    }
+    staffUnlockTimer.current = setTimeout(() => {
+      staffUnlockClicks.current = 0;
+    }, STAFF_UNLOCK_WINDOW_MS);
+  }
+
+  function handleStaffLoginSuccess() {
+    router.push("/dashboard");
+  }
+
+  function handleLoginSuccess(data: { token: string; name: string }) {
+    setCustomerToken(data.token);
+    if (data.name) setCustomerName(data.name);
+    refreshAppointments(data.token);
+  }
+
+  function handleLogout() {
+    clearCustomerSession();
+    setCustomerToken(null);
+    setCustomerName("");
+    refreshAppointments(null);
+    toast.success(t.account.logoutSuccess);
+  }
 
   async function handleCancel(id: string) {
     if (!confirm(t.account.cancelConfirm)) return;
@@ -79,7 +180,7 @@ export default function AccountPage() {
     }
   }
 
-  if (loading) {
+  if (!sessionReady || loading) {
     return <div className="section-padding text-center">{t.account.loading}</div>;
   }
 
@@ -90,11 +191,37 @@ export default function AccountPage() {
   return (
     <div className="section-padding">
       <div className="mx-auto max-w-4xl">
-        <PageHeader
-          title={`${t.account.welcome}${customerName ? `, ${customerName.split(" ")[0]}` : ""}`}
-          subtitle={t.account.subtitle}
-          className="mb-10"
-        />
+        <div className="mb-10 flex flex-wrap items-start justify-between gap-4">
+          <button
+            type="button"
+            onClick={handleWelcomeUnlock}
+            className="flex-1 cursor-default border-0 bg-transparent p-0 text-left"
+            aria-label={t.account.welcome}
+          >
+            <PageHeader
+              title={`${t.account.welcome}${customerName ? `, ${customerName.split(" ")[0]}` : ""}`}
+              subtitle={customerToken ? t.account.subtitleLoggedIn : t.account.subtitle}
+              className="mb-0"
+            />
+          </button>
+          {customerToken ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="border-gold/30"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              {t.account.logout}
+            </Button>
+          ) : null}
+        </div>
+
+        {showStaffLogin ? (
+          <StaffLoginForm discrete onSuccess={handleStaffLoginSuccess} />
+        ) : null}
+
+        {!customerToken ? <CustomerLoginForm onSuccess={handleLoginSuccess} /> : null}
 
         <p className="mb-6 text-center text-sm text-muted-foreground">{t.booking.policy}</p>
 
@@ -103,7 +230,9 @@ export default function AccountPage() {
             <Card className="glass-card">
               <CardContent className="p-8 text-center">
                 <Calendar className="mx-auto mb-4 h-10 w-10 text-gold" />
-                <p className="text-muted-foreground">{t.account.noUpcoming}</p>
+                <p className="text-muted-foreground">
+                  {customerToken ? t.account.noUpcomingLoggedIn : t.account.noUpcoming}
+                </p>
                 <Button asChild className="gold-gradient mt-4 border-0">
                   <Link href="/booking">{t.nav.bookNow}</Link>
                 </Button>

@@ -3,10 +3,14 @@ import { format, addMinutes } from "date-fns";
 import { BARBERS, SERVICES } from "@/lib/constants";
 import {
   hasBookingConflict,
+  hasMorningHourBooking,
   isBarberAvailableDay,
+  isBarberOnFullDayOff,
   isWithinBookingWindow,
+  overlapsMorningHour,
 } from "@/lib/booking-utils";
-import { syncAppointmentToSharedCalendar } from "@/lib/calendar-sync";
+import { readTimeOff } from "@/lib/store/time-off";
+import { syncAppointmentCalendars } from "@/lib/calendar-sync";
 import {
   findAppointmentById,
   readAppointments,
@@ -48,7 +52,7 @@ export async function PATCH(
     if (body.action === "cancel") {
       const appointment = await updateAppointmentById(id, { status: "cancelled" });
       if (appointment) {
-        syncAppointmentToSharedCalendar(appointment, "cancel").catch((err) => {
+        syncAppointmentCalendars(appointment, "cancel").catch((err) => {
           console.error("[calendar-sync]", err);
         });
       }
@@ -82,11 +86,19 @@ export async function PATCH(
         );
       }
 
-      if (!isBarberAvailableDay(start, barber.id)) {
+      const timeOff = await readTimeOff();
+      if (!isBarberAvailableDay(start, barber.id) || isBarberOnFullDayOff(start, barber.id, timeOff)) {
         return NextResponse.json({ error: "Barber is not available on this day" }, { status: 400 });
       }
 
       const appointments = await readAppointments();
+      if (
+        overlapsMorningHour(start, end, start) &&
+        hasMorningHourBooking(appointments, dateKey, id)
+      ) {
+        return NextResponse.json({ error: "That time slot is no longer available" }, { status: 409 });
+      }
+
       if (hasBookingConflict(barber.id, dateKey, start, end, appointments, id)) {
         return NextResponse.json({ error: "That time slot is no longer available" }, { status: 409 });
       }
@@ -99,7 +111,7 @@ export async function PATCH(
       });
 
       if (appointment) {
-        syncAppointmentToSharedCalendar(appointment, "reschedule").catch((err) => {
+        syncAppointmentCalendars(appointment, "reschedule").catch((err) => {
           console.error("[calendar-sync]", err);
         });
       }

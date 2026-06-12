@@ -38,7 +38,7 @@ export function Navbar() {
           </div>
         </Link>
 
-        <div className="hidden items-center gap-8 lg:flex">
+        <div data-nav-desktop data-nav-links className="hidden items-center gap-8 lg:flex">
           {NAV_HREFS.map((link) => (
             <Link
               key={link.href}
@@ -50,7 +50,7 @@ export function Navbar() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex lg:gap-3">
+        <div data-nav-desktop data-nav-actions className="hidden items-center gap-2 lg:flex lg:gap-3">
           <AppointmentSearch />
           <LanguageSwitcher />
           <Button variant="ghost" size="sm" asChild>
@@ -68,7 +68,7 @@ export function Navbar() {
         </div>
 
         {/* Mobile actions — always visible */}
-        <div className="flex items-center gap-0.5 sm:gap-1 lg:hidden">
+        <div data-nav-mobile className="flex items-center gap-0.5 sm:gap-1 lg:hidden">
           <AppointmentSearch />
           <LanguageSwitcher />
           <Button size="icon-sm" asChild className="gold-gradient border-0">
