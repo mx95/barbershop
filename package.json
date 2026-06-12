@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "start:prod": "npm run build && next start -H 0.0.0.0 -p 3000",
-    "deploy:prod": "npm install && npm run build && pm2 restart ecosystem.config.cjs --update-env",
+    "deploy:prod": "npm install && rm -rf .next && npm run build && pm2 delete barbershop 2>/dev/null || true && pm2 start ecosystem.config.cjs --update-env && pm2 save",
     "lint": "eslint"
   },
   "dependencies": {
