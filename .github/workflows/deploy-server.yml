@@ -1,11 +1,8 @@
 # Push to main → SSH to Hetzner (same host as PetPal), pull, build, reload PM2 barbershop.
 #
-# One-time setup (GitHub repo → Settings → Secrets and variables → Actions):
-#   DEPLOY_HOST     e.g. 116.203.209.68
-#   DEPLOY_USER     e.g. root
-#   DEPLOY_SSH_KEY  private key (PEM) that can SSH as DEPLOY_USER
+# Required secret (copy from PetPal repo):
+#   DEPLOY_SSH_KEY  private key (PEM) that can SSH as root@116.203.209.68
 # Optional:
-#   DEPLOY_PORT     default 22
 #   DEPLOY_PATH     default /root/barbershop
 #
 # One-time setup on the server (same VPS as PetPal):
@@ -41,8 +38,8 @@ jobs:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
+          host: 116.203.209.68
+          username: root
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           command_timeout: 20m
           script: |
