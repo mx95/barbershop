@@ -67,12 +67,22 @@ Or from the repo root: `npm run deploy:prod`
 
 ### GitHub Actions (auto-deploy on push to `main`)
 
-Add these repository secrets (same values as PetPal):
+Copy the same **Actions secrets** from the PetPal repo (Settings → Secrets → Actions):
 
-- `DEPLOY_HOST` — `116.203.209.68`
-- `DEPLOY_USER` — `root`
-- `DEPLOY_SSH_KEY` — SSH private key for the server
-- `DEPLOY_PATH` (optional) — `/root/barbershop`
+| Secret | Example value |
+|--------|----------------|
+| `DEPLOY_HOST` | `116.203.209.68` |
+| `DEPLOY_USER` | `root` |
+| `DEPLOY_SSH_KEY` | *(same private key as PetPal)* |
+| `DEPLOY_PATH` | `/root/barbershop` *(optional)* |
+
+After secrets are set, push to `main` or run **Deploy server** from the Actions tab.
+
+Until secrets are configured, deploy manually over SSH:
+
+```bash
+ssh root@116.203.209.68 'cd /root/barbershop && git pull origin main && bash scripts/deploy-server.sh'
+```
 
 ## Repository
 
