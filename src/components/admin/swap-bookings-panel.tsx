@@ -131,23 +131,25 @@ export function SwapBookingsPanel({
         </Card>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div className="min-w-0">
+      <div className="flex flex-col gap-8 lg:grid lg:grid-cols-2">
+        <div className="min-w-0 shrink-0">
           <Label className="mb-3 block">{t.admin.swap.pickDay}</Label>
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={(d) => d && setSelectedDate(d)}
-            month={calendarMonth}
-            onMonthChange={setCalendarMonth}
-            weekStartsOn={1}
-            modifiers={{ booked: bookedDays }}
-            modifiersClassNames={{ booked: "relative after:absolute after:bottom-1 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-gold" }}
-            className="glass-card mx-auto w-full max-w-full rounded-xl border-gold/20 p-2"
-          />
+          <div className="overflow-hidden rounded-xl">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(d) => d && setSelectedDate(d)}
+              month={calendarMonth}
+              onMonthChange={setCalendarMonth}
+              weekStartsOn={1}
+              modifiers={{ booked: bookedDays }}
+              modifiersClassNames={{ booked: "relative after:absolute after:bottom-1 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-gold" }}
+              className="glass-card mx-auto w-full max-w-full rounded-xl border-gold/20 p-2"
+            />
+          </div>
         </div>
 
-        <div className="min-w-0 pt-2 lg:pt-0">
+        <div className="relative z-10 min-w-0 border-t border-gold/15 pt-6 lg:border-t-0 lg:pt-0">
           <Label className="mb-3 block">
             {selectedDate
               ? format(selectedDate, "EEEE, d MMMM")
