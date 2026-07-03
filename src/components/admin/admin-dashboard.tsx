@@ -250,44 +250,46 @@ export function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="schedule">
-          <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 sm:grid-cols-3 lg:grid-cols-6">
-            <TabsTrigger
-              value="schedule"
-              className="h-auto min-h-11 flex-none px-3 py-2.5 text-xs sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
-            >
-              {t.admin.tabs.schedule}
-            </TabsTrigger>
-            <TabsTrigger
-              value="swap"
-              className="h-auto min-h-11 flex-none px-3 py-2.5 text-xs sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
-            >
-              {t.admin.tabs.swap}
-            </TabsTrigger>
-            <TabsTrigger
-              value="timeoff"
-              className="h-auto min-h-11 flex-none px-3 py-2.5 text-xs sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
-            >
-              {t.admin.tabs.timeOff}
-            </TabsTrigger>
-            <TabsTrigger
-              value="customers"
-              className="h-auto min-h-11 flex-none px-3 py-2.5 text-xs sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
-            >
-              {t.admin.tabs.customers}
-            </TabsTrigger>
-            <TabsTrigger
-              value="gallery"
-              className="h-auto min-h-11 flex-none px-3 py-2.5 text-xs sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
-            >
-              {t.admin.tabs.gallery}
-            </TabsTrigger>
-            <TabsTrigger
-              value="calendar"
-              className="h-auto min-h-11 flex-none px-3 py-2.5 text-xs sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15 col-span-2 sm:col-span-1"
-            >
-              {t.admin.tabs.calendar}
-            </TabsTrigger>
-          </TabsList>
+          <div className="sticky top-16 z-30 -mx-4 mb-6 border-b border-gold/10 bg-background/95 px-4 py-3 backdrop-blur-xl sm:top-20 sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+            <TabsList className="grid h-auto w-full auto-rows-fr grid-cols-2 gap-2 bg-transparent p-0 group-data-horizontal/tabs:h-auto sm:grid-cols-3 lg:grid-cols-6">
+              <TabsTrigger
+                value="schedule"
+                className="h-auto min-h-11 flex-none whitespace-normal px-3 py-2.5 text-xs leading-snug sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
+              >
+                {t.admin.tabs.schedule}
+              </TabsTrigger>
+              <TabsTrigger
+                value="swap"
+                className="h-auto min-h-11 flex-none whitespace-normal px-3 py-2.5 text-xs leading-snug sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
+              >
+                {t.admin.tabs.swap}
+              </TabsTrigger>
+              <TabsTrigger
+                value="timeoff"
+                className="h-auto min-h-11 flex-none whitespace-normal px-3 py-2.5 text-xs leading-snug sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
+              >
+                {t.admin.tabs.timeOff}
+              </TabsTrigger>
+              <TabsTrigger
+                value="customers"
+                className="h-auto min-h-11 flex-none whitespace-normal px-3 py-2.5 text-xs leading-snug sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
+              >
+                {t.admin.tabs.customers}
+              </TabsTrigger>
+              <TabsTrigger
+                value="gallery"
+                className="h-auto min-h-11 flex-none whitespace-normal px-3 py-2.5 text-xs leading-snug sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
+              >
+                {t.admin.tabs.gallery}
+              </TabsTrigger>
+              <TabsTrigger
+                value="calendar"
+                className="col-span-2 h-auto min-h-11 flex-none whitespace-normal px-3 py-2.5 text-xs leading-snug sm:col-span-1 sm:text-sm border border-gold/20 bg-card/40 data-active:border-gold data-active:bg-gold/15"
+              >
+                {t.admin.tabs.calendar}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="schedule">
             {loading ? (
@@ -362,8 +364,8 @@ export function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="customers">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className="space-y-2">
+            <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+              <div className="min-w-0 space-y-2">
                 {customers.map((c) => (
                   <button
                     key={c.key}

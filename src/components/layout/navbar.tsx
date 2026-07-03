@@ -81,8 +81,8 @@ export function Navbar() {
               <SheetTrigger className="lg:hidden" render={<Button variant="ghost" size="icon-sm" />}>
                 <Menu className="h-5 w-5" />
               </SheetTrigger>
-              <SheetContent side="right" className="border-gold/20 bg-background/95 backdrop-blur-xl">
-                <div className="mt-6 flex flex-col gap-5">
+              <SheetContent side="right" className="border-gold/20 bg-background/95 px-6 py-6 backdrop-blur-xl sm:px-8">
+                <div className="mt-8 flex flex-col gap-5">
                   {NAV_HREFS.map((link) => (
                     <Link
                       key={link.href}

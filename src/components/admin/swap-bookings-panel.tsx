@@ -131,8 +131,8 @@ export function SwapBookingsPanel({
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div>
+      <div className="grid gap-8 lg:grid-cols-2">
+        <div className="min-w-0">
           <Label className="mb-3 block">{t.admin.swap.pickDay}</Label>
           <Calendar
             mode="single"
@@ -143,11 +143,11 @@ export function SwapBookingsPanel({
             weekStartsOn={1}
             modifiers={{ booked: bookedDays }}
             modifiersClassNames={{ booked: "relative after:absolute after:bottom-1 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-gold" }}
-            className="glass-card mx-auto w-full rounded-xl border-gold/20 p-2"
+            className="glass-card mx-auto w-full max-w-full rounded-xl border-gold/20 p-2"
           />
         </div>
 
-        <div>
+        <div className="min-w-0 pt-2 lg:pt-0">
           <Label className="mb-3 block">
             {selectedDate
               ? format(selectedDate, "EEEE, d MMMM")
