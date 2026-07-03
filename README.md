@@ -36,6 +36,44 @@ Open [http://localhost:3000](http://localhost:3000).
 2. Run `supabase/migrations/001_initial_schema.sql` in the SQL editor
 3. Add keys to `.env.local` (see `.env.example`)
 
+## Production deploy (Hetzner — same server as PetPal)
+
+Barbershop runs on **port 3000** via PM2 (`barbershop` app). PetPal uses port 5002 — no conflict.
+
+### One-time server setup
+
+```bash
+ssh root@116.203.209.68
+git clone https://github.com/mx95/barbershop.git /root/barbershop
+cd /root/barbershop
+cp .env.example .env.local   # configure keys and NEXT_PUBLIC_APP_URL
+bash scripts/deploy-server.sh
+pm2 save
+```
+
+Optional HTTPS (after DNS points to the server):
+
+```bash
+sudo bash scripts/setup-nginx-domain.sh
+```
+
+### Manual deploy
+
+```bash
+cd /root/barbershop && bash scripts/deploy-server.sh
+```
+
+Or from the repo root: `npm run deploy:prod`
+
+### GitHub Actions (auto-deploy on push to `main`)
+
+Add these repository secrets (same values as PetPal):
+
+- `DEPLOY_HOST` — `116.203.209.68`
+- `DEPLOY_USER` — `root`
+- `DEPLOY_SSH_KEY` — SSH private key for the server
+- `DEPLOY_PATH` (optional) — `/root/barbershop`
+
 ## Repository
 
 ```bash
