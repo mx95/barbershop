@@ -44,8 +44,8 @@ Barbershop runs on **port 3000** via PM2 (`barbershop` app). PetPal uses port 50
 
 ```bash
 ssh root@116.203.209.68
-git clone https://github.com/mx95/barbershop.git /root/barbershop
-cd /root/barbershop
+git clone https://github.com/mx95/barbershop.git /root/barbershop/barbershop
+cd /root/barbershop/barbershop
 cp .env.example .env.local   # configure keys and NEXT_PUBLIC_APP_URL
 bash scripts/deploy-server.sh
 pm2 save

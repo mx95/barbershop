@@ -3,7 +3,7 @@
 # Required secret (copy from PetPal repo):
 #   DEPLOY_SSH_KEY  private key (PEM) that can SSH as root@116.203.209.68
 # Optional:
-#   DEPLOY_PATH     default /root/barbershop
+#   DEPLOY_PATH     default /root/barbershop/barbershop
 #
 # One-time setup on the server (same VPS as PetPal):
 #   1. git clone https://github.com/mx95/barbershop.git /root/barbershop
@@ -45,7 +45,7 @@ jobs:
           script: |
             set -euo pipefail
             BARBERSHOP_ROOT="${{ secrets.DEPLOY_PATH }}"
-            if [ -z "$BARBERSHOP_ROOT" ]; then BARBERSHOP_ROOT="/root/barbershop"; fi
+            if [ -z "$BARBERSHOP_ROOT" ]; then BARBERSHOP_ROOT="/root/barbershop/barbershop"; fi
             export BARBERSHOP_ROOT
             export DEPLOY_BRANCH="${{ github.event.inputs.branch || github.ref_name }}"
             bash "$BARBERSHOP_ROOT/scripts/deploy-server.sh"
